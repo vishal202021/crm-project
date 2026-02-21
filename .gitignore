@@ -1,0 +1,6 @@
+node_modules/
+crm_frontend/node_modules/
+.env
+target/
+build/
+dist/

@@ -152,17 +152,14 @@ const Today = () => {
         />
       </div>
 
-      <div style={{
-        display:"grid",
-        gridTemplateColumns:"repeat(4,1fr)",
-        gap:"20px"
-      }}>
+      {/* ✅ FIXED: replaced inline gridTemplateColumns with className */}
+      <div className="pipeline-board">
 
         {columns.map(col => {
 
           if (col === "New") {
             return (
-              <div key={col} className="glass p-3">
+              <div key={col} className="glass p-3 pipeline-col">
                 <h6 className="fw-bold mb-3">New</h6>
 
                 {newCustomers.map(c => (
@@ -188,7 +185,7 @@ const Today = () => {
           }
 
           return (
-            <div key={col} className="glass p-3">
+            <div key={col} className="glass p-3 pipeline-col">
 
               <h6 className="fw-bold mb-3">{col}</h6>
 

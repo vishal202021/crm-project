@@ -12,8 +12,8 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                "http://localhost:5173",               // local frontend
-                "https://your-frontend.onrender.com"   // deployed frontend
+                "http://localhost:5173",               
+                "https://crm-project-frontend-zbrw.onrender.com"
         ));
 
         config.setAllowedMethods(List.of("*"));

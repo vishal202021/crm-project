@@ -1293,18 +1293,98 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     gap: 10px;
   }
 
-  /* ── Tables — always horizontal scroll ── */
+  /* ── Tables — always horizontal scroll, never clip columns ── */
   .table-wrap {
     overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     border-radius: 16px;
+    /* Make sure the wrapper itself doesn't constrain width */
+    max-width: 100%;
+    display: block;
   }
 
+  /* Tables keep their natural max-content width so NO column is cut */
   .modern-table,
   .elite-table,
   .ds-table {
-    min-width: 650px;
+    /* Use original wide min-width so all columns render fully */
+    min-width: 950px;
+    width: max-content;
+    table-layout: auto;
+  }
+
+  /* Each column must not shrink below its content */
+  .modern-table th,
+  .modern-table td,
+  .elite-table th,
+  .elite-table td,
+  .ds-table th,
+  .ds-table td {
+    white-space: nowrap;
+  }
+
+  /* Only name column can wrap */
+  .col-name {
+    white-space: normal;
+    min-width: 140px;
+    max-width: 200px;
+    word-break: break-word;
+  }
+
+  /* Shrink action column on mobile to save space */
+  .col-actions-wide,
+  .ds-table th:last-child,
+  .ds-table td:last-child {
+    width: auto;
+    min-width: 120px;
+    padding-right: 10px !important;
+  }
+
+  /* Make icon buttons smaller inside tables on mobile */
+  .ds-table .icon-btn,
+  .modern-table .icon-btn,
+  .elite-table .icon-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .ds-table .action-group,
+  .ds-table .elite-actions,
+  .modern-table .action-group,
+  .elite-table .action-group {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
+  /* Reduce font size inside table cells on mobile */
+  .modern-table td,
+  .elite-table td,
+  .ds-table td {
+    font-size: 12px;
+    padding: 8px 10px !important;
+  }
+
+  .modern-table thead th,
+  .elite-table thead th,
+  .ds-table thead th {
+    font-size: 11px;
+    padding: 10px 10px !important;
+    letter-spacing: 0.5px;
+  }
+
+  /* Badges inside tables — compact */
+  .ds-table .badge,
+  .ds-table .elite-badge,
+  .ds-table .ds-badge,
+  .modern-table .badge,
+  .elite-table .badge {
+    min-width: 60px;
+    font-size: 10px;
+    padding: 3px 7px;
   }
 
   /* ── Form card ── */

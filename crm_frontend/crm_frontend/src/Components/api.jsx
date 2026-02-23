@@ -2,44 +2,53 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { getToken, logout } from "./auth";
 
+/*
+  API BASE URL
+  Uses:
+  - .env (VITE_API_URL) for production
+  - localhost fallback for local development
+*/
 const api = axios.create({
-  baseURL: "http://localhost:8080",
-  timeout: 15000
+  baseURL:
+    import.meta.env.VITE_API_URL || "http://localhost:8080",
+  timeout: 15000,
 });
 
+/* ===============================
+   REQUEST INTERCEPTOR
+   Attach JWT token automatically
+================================ */
+api.interceptors.request.use(
+  (config) => {
+    const token = getToken();
 
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-api.interceptors.request.use(config => {
-  const token = getToken();
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 
 let isRedirecting = false;
 
 api.interceptors.response.use(
-  res => res,
-  err => {
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
 
-    const status = err.response?.status;
     const errorMsg =
-      err.response?.data?.error ||
-      err.response?.data?.message ||
+      error.response?.data?.error ||
+      error.response?.data?.message ||
       "Something went wrong";
 
     const isAuthCall =
-      err.config?.url?.includes("/auth/login") ||
-      err.config?.url?.includes("/auth/register");
+      error.config?.url?.includes("/auth/login") ||
+      error.config?.url?.includes("/auth/register");
 
-    
     if (status === 401 && !isAuthCall) {
-
       if (!isRedirecting) {
         isRedirecting = true;
 
@@ -53,17 +62,25 @@ api.interceptors.response.use(
       }
     }
 
-   
     if (status === 403 && !isAuthCall) {
       toast.error(errorMsg || "Access denied");
     }
 
-   
-    if (status >= 400 && status < 500 && !isAuthCall) {
+    if (
+      status >= 400 &&
+      status < 500 &&
+      status !== 401 &&
+      status !== 403 &&
+      !isAuthCall
+    ) {
       toast.error(errorMsg);
     }
 
-    return Promise.reject(err);
+    if (!status) {
+      toast.error("Server unreachable");
+    }
+
+    return Promise.reject(error);
   }
 );
 

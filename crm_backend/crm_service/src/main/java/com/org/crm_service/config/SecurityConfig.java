@@ -23,10 +23,11 @@ public class SecurityConfig {
             throws Exception {
 
         http
+                .cors(cors -> {})
+
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-
 
                         .requestMatchers(
                                 "/auth/login",
@@ -34,13 +35,11 @@ public class SecurityConfig {
                                 "/auth/admin"
                         ).permitAll()
 
-
                         .requestMatchers(
                                 "/auth/approve/**",
                                 "/auth/reject/**",
                                 "/auth/pending"
                         ).hasRole("ADMIN")
-
 
                         .anyRequest().authenticated()
                 )
@@ -52,7 +51,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder(){

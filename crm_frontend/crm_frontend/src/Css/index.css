@@ -1120,6 +1120,7 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
   50% { opacity: 0.5; }
 }
 
+
 @media (max-width: 1024px) {
   .sidebar, .ds-sidebar {
     width: 220px;
@@ -1153,6 +1154,7 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     overflow-x: hidden !important;
   }
 
+  /* Main scroll area fills width */
   .flex-grow-1 {
     height: auto !important;
     overflow-y: visible !important;
@@ -1160,6 +1162,7 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     min-width: 0 !important;
   }
 
+  /* ── Sidebar: horizontal scrollable pill bar ── */
   .sidebar, .ds-sidebar {
     width: 100% !important;
     flex: 0 0 auto !important;
@@ -1291,10 +1294,12 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     width: 100% !important;
     display: block !important;
     border-radius: 16px;
+    /* Show scrollbar so user knows they can scroll */
     scrollbar-width: thin;
     scrollbar-color: #6366f1 rgba(15,20,25,0.3);
   }
 
+  /* Tables use their full natural width — no column gets cut */
   .modern-table,
   .elite-table,
   .ds-table {
@@ -1303,6 +1308,7 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     table-layout: auto !important;
   }
 
+  /* All cells: no wrapping so columns stay intact */
   .modern-table th,
   .modern-table td,
   .elite-table th,
@@ -1322,6 +1328,7 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     letter-spacing: 0.5px !important;
   }
 
+  /* Name column: slightly narrower but still readable */
   .col-name {
     min-width: 130px !important;
     max-width: 180px !important;
@@ -1402,7 +1409,6 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     justify-content: center;
   }
 
-
   .d-flex.gap-2,
   [class*="pipeline"] > .d-flex,
   .pipeline-columns,
@@ -1414,7 +1420,6 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     gap: 16px !important;
   }
 
-  /* Each pipeline column takes full width */
   .pipeline-column,
   .kanban-column,
   [class*="pipeline-col"],
@@ -1534,10 +1539,12 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     transform: none;
   }
 
+  /* ── Task items ── */
   .ds-task-item:hover {
     transform: none;
   }
 
+  /* ── Pipeline cards ── */
   .pipeline-card {
     padding: 14px 16px;
   }
@@ -1566,7 +1573,6 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     padding: 12px 20px;
   }
 
-  /* ── Toasts ── */
   .Toastify__toast-container {
     left: 12px !important;
     right: 12px !important;
@@ -1574,7 +1580,6 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     width: auto !important;
   }
 }
-
 
 @media (hover: none) and (pointer: coarse) {
   .menu-link {
@@ -1616,7 +1621,6 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
   }
 }
 
-
 @supports (padding: env(safe-area-inset-bottom)) {
   @media (max-width: 768px) {
     .elite-drawer {
@@ -1636,355 +1640,4 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
-}
-
-
-.pipeline-board {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-.pipeline-col {
-  min-width: 0;
-}
-
-.ds-card:has(.ds-table),
-.ds-card:has(.modern-table),
-.ds-card:has(.elite-table) {
-  overflow: visible !important;
-  padding: 0 !important;
-}
-
-
-.ds-card .table,
-.ds-card .ds-table,
-.ds-card .modern-table,
-.ds-card .elite-table {
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  width: 100%;
-}
-
-
-@media (max-width: 768px) {
-
-  html, body {
-    overflow-x: hidden !important;
-  }
-
-  .layout-body {
-    flex-direction: column !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  .flex-grow-1 {
-    height: auto !important;
-    overflow-y: auto !important;
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  .sidebar,
-  .ds-sidebar {
-    width: 100% !important;
-    flex: 0 0 auto !important;
-    height: auto !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    position: relative !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--glass-border) !important;
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    padding: 8px 10px !important;
-    gap: 4px !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .menu-link {
-    flex-direction: row !important;
-    flex-shrink: 0 !important;
-    padding: 8px 12px !important;
-    margin-bottom: 0 !important;
-    font-size: 12px !important;
-    gap: 6px !important;
-    border-radius: 10px !important;
-    white-space: nowrap !important;
-    transform: none !important;
-  }
-
-  .ds-menu-title,
-  .section-title,
-  .ds-sidebar hr,
-  .sidebar hr {
-    display: none !important;
-  }
-
-  .sidebar-badge {
-    font-size: 9px !important;
-    padding: 1px 5px !important;
-    min-width: 16px !important;
-  }
-
-  nav.glass {
-    padding: 10px 14px !important;
-  }
-
-  .page-wrap {
-    padding: 12px !important;
-  }
-
-
-  .pipeline-board {
-    grid-template-columns: 1fr !important;
-    gap: 14px !important;
-  }
-
-  .pipeline-col {
-    width: 100% !important;
-  }
-
-
-  .ds-card {
-    overflow: visible !important;
-  }
-
-
-  .ds-card .table,
-  .ds-card .ds-table,
-  .ds-card .modern-table,
-  .ds-card .elite-table {
-    display: block !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    width: 100% !important;
-    scrollbar-width: thin;
-    scrollbar-color: #6366f1 rgba(15,20,25,0.5);
-  }
-
-  .ds-card .ds-table thead,
-  .ds-card .ds-table tbody,
-  .ds-card .modern-table thead,
-  .ds-card .modern-table tbody,
-  .ds-card .elite-table thead,
-  .ds-card .elite-table tbody {
-    display: table !important; 
-    width: 100%;
-  }
-
-  .ds-table th,
-  .ds-table td,
-  .modern-table th,
-  .modern-table td,
-  .elite-table th,
-  .elite-table td {
-    white-space: nowrap !important;
-    font-size: 12px !important;
-    padding: 8px 10px !important;
-  }
-
-  .ds-table thead th,
-  .modern-table thead th,
-  .elite-table thead th {
-    font-size: 11px !important;
-    letter-spacing: 0.5px !important;
-    padding: 10px 10px !important;
-  }
-
-  .col-name {
-    min-width: 130px !important;
-    white-space: normal !important;
-    word-break: break-word;
-  }
-
-  .col-actions,
-  .col-actions-wide,
-  .ds-table th:last-child,
-  .ds-table td:last-child {
-    min-width: 80px !important;
-    width: auto !important;
-  }
-
-  .ds-table .icon-btn,
-  .modern-table .icon-btn,
-  .elite-table .icon-btn {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    font-size: 11px !important;
-    border-radius: 8px !important;
-  }
-
-  .elite-actions {
-    gap: 4px !important;
-    flex-wrap: nowrap !important;
-  }
-
-  .ds-badge {
-    min-width: 55px !important;
-    font-size: 10px !important;
-    padding: 2px 6px !important;
-  }
-
-  .ds-card.d-flex {
-    flex-wrap: wrap !important;
-    gap: 10px !important;
-    padding: 14px 16px !important;
-  }
-
-  .ds-card.d-flex h3 {
-    font-size: 16px !important;
-  }
-
-  .elite-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    padding: 16px !important;
-    gap: 10px !important;
-    margin-bottom: 14px !important;
-  }
-
-  .elite-header h3 {
-    font-size: 1.2em !important;
-  }
-
-  .elite-search {
-    padding: 12px 14px !important;
-    margin-bottom: 14px !important;
-  }
-
-  .ds-stat-card,
-  .elite-stat {
-    padding: 18px !important;
-  }
-
-  .ds-stat-card h2,
-  .ds-stat-card h4,
-  .elite-stat h4 {
-    font-size: 1.8em !important;
-  }
-
-  .elite-form-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 18px !important;
-  }
-
-  .elite-form-card h4 {
-    font-size: 1.3em !important;
-  }
-
-  .elite-form-actions {
-    flex-direction: column !important;
-    gap: 10px !important;
-  }
-
-  .elite-form-actions > * {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  .contact-card {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-  }
-
-  .contact-fields {
-    grid-template-columns: 1fr !important;
-    width: 100% !important;
-  }
-
-  .elite-modal-bg {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-
-  .elite-modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    padding: 24px 20px !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-  }
-
-  .elite-modal-footer {
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-
-  .elite-modal-footer > * {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  .elite-drawer-bg {
-    align-items: flex-end !important;
-    justify-content: center !important;
-  }
-
-  .elite-drawer {
-    width: 100% !important;
-    height: 92vh !important;
-    border-radius: 20px 20px 0 0 !important;
-    border-left: none !important;
-    border-top: 1px solid var(--glass-border) !important;
-    padding: 20px !important;
-    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
-  }
-
-  .avatar {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    font-size: 13px !important;
-  }
-
-  .gap-2 {
-    gap: 8px !important;
-  }
-
-  .Toastify__toast-container {
-    left: 10px !important;
-    right: 10px !important;
-    bottom: 10px !important;
-    width: auto !important;
-  }
-}
-
-@media (hover: none) and (pointer: coarse) {
-  .menu-link {
-    min-height: 44px !important;
-  }
-
-  .icon-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-  }
-
-  .elite-add-btn,
-  .elite-save,
-  .ds-btn {
-    min-height: 46px !important;
-  }
-
-  .ds-stat-card:hover,
-  .elite-stat:hover,
-  .pipeline-card:hover,
-  .ds-task-item:hover,
-  .ds-timeline-card:hover {
-    transform: none !important;
-    box-shadow: inherit !important;
-  }
 }

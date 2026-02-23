@@ -1153,70 +1153,60 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
 
   /* ── Shell layout becomes vertical ── */
   .layout-body {
-    flex-direction: column;
-    height: auto;
-    overflow: visible;
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-x: hidden !important;
   }
 
-  /* Main scroll area */
+  /* Main scroll area fills width */
   .flex-grow-1 {
-    height: auto;
-    overflow-y: visible;
+    height: auto !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    min-width: 0 !important;
   }
 
-  /* ── Sidebar becomes horizontal top-bar ── */
+  /* ── Sidebar: horizontal scrollable pill bar ── */
   .sidebar, .ds-sidebar {
-    width: 100%;
-    flex: 0 0 auto;
-    height: auto;
-    overflow-y: visible;
-    overflow-x: auto;
-    position: relative;
-    top: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--glass-border);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    width: 100% !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    position: relative !important;
+    top: auto !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
     -webkit-overflow-scrolling: touch;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+    gap: 6px !important;
   }
 
-  .ds-sidebar {
-    padding: 12px 16px;
-  }
-
-  /* All direct children of sidebar scroll horizontally */
-  .ds-sidebar > *,
-  .sidebar > * {
-    flex-shrink: 0;
-  }
-
-  /* Convert menu nav to horizontal scroll row */
-  .ds-sidebar nav,
-  .ds-sidebar > div,
-  .sidebar nav,
-  .sidebar > div {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 6px;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
+  /* Every menu link is a pill */
   .menu-link {
-    padding: 10px 14px;
-    margin-bottom: 0;
-    font-size: 13px;
-    gap: 8px;
-    flex-shrink: 0;
-    border-radius: 10px;
+    display: inline-flex !important;
+    padding: 8px 12px !important;
+    margin-bottom: 0 !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    border-radius: 10px !important;
+    white-space: nowrap !important;
+    transform: none !important;
   }
 
-  /* Hide sidebar section titles on mobile */
+  /* Hide section dividers/titles in sidebar */
   .ds-menu-title,
   .section-title,
-  .ds-sidebar hr {
-    display: none;
+  .ds-sidebar hr,
+  .sidebar hr {
+    display: none !important;
   }
 
   /* ── Nav bar ── */
@@ -1293,77 +1283,46 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     gap: 10px;
   }
 
-  /* ── Tables — always horizontal scroll, never clip columns ── */
-  .table-wrap {
-    overflow-x: auto;
-    overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 16px;
-    /* Make sure the wrapper itself doesn't constrain width */
-    max-width: 100%;
-    display: block;
+  /* ── Tables — full horizontal scroll, NO clipping ── */
+
+  /* Parent card must NOT clip table overflow */
+  .ds-card:has(.table-wrap),
+  .ds-card:has(.modern-table),
+  .ds-card:has(.ds-table),
+  .ds-card:has(.elite-table) {
+    overflow: visible !important;
+    padding: 0 !important;
   }
 
-  /* Tables keep their natural max-content width so NO column is cut */
+  .table-wrap {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    display: block !important;
+    border-radius: 16px;
+    /* Show scrollbar so user knows they can scroll */
+    scrollbar-width: thin;
+    scrollbar-color: #6366f1 rgba(15,20,25,0.3);
+  }
+
+  /* Tables use their full natural width — no column gets cut */
   .modern-table,
   .elite-table,
   .ds-table {
-    /* Use original wide min-width so all columns render fully */
-    min-width: 950px;
-    width: max-content;
-    table-layout: auto;
+    min-width: 900px !important;
+    width: max-content !important;
+    table-layout: auto !important;
   }
 
-  /* Each column must not shrink below its content */
+  /* All cells: no wrapping so columns stay intact */
   .modern-table th,
   .modern-table td,
   .elite-table th,
   .elite-table td,
   .ds-table th,
   .ds-table td {
-    white-space: nowrap;
-  }
-
-  /* Only name column can wrap */
-  .col-name {
-    white-space: normal;
-    min-width: 140px;
-    max-width: 200px;
-    word-break: break-word;
-  }
-
-  /* Shrink action column on mobile to save space */
-  .col-actions-wide,
-  .ds-table th:last-child,
-  .ds-table td:last-child {
-    width: auto;
-    min-width: 120px;
-    padding-right: 10px !important;
-  }
-
-  /* Make icon buttons smaller inside tables on mobile */
-  .ds-table .icon-btn,
-  .modern-table .icon-btn,
-  .elite-table .icon-btn {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    font-size: 12px;
-    border-radius: 8px;
-  }
-
-  .ds-table .action-group,
-  .ds-table .elite-actions,
-  .modern-table .action-group,
-  .elite-table .action-group {
-    gap: 4px;
-    flex-wrap: nowrap;
-  }
-
-  /* Reduce font size inside table cells on mobile */
-  .modern-table td,
-  .elite-table td,
-  .ds-table td {
+    white-space: nowrap !important;
     font-size: 12px;
     padding: 8px 10px !important;
   }
@@ -1371,20 +1330,55 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
   .modern-table thead th,
   .elite-table thead th,
   .ds-table thead th {
-    font-size: 11px;
+    font-size: 11px !important;
     padding: 10px 10px !important;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.5px !important;
   }
 
-  /* Badges inside tables — compact */
+  /* Name column: slightly narrower but still readable */
+  .col-name {
+    min-width: 130px !important;
+    max-width: 180px !important;
+    white-space: normal !important;
+    word-break: break-word;
+  }
+
+  /* Action column: compact */
+  .col-actions-wide,
+  .ds-table th:last-child,
+  .ds-table td:last-child {
+    min-width: 110px !important;
+    width: auto !important;
+    padding-right: 10px !important;
+  }
+
+  /* Icon buttons inside tables: smaller */
+  .ds-table .icon-btn,
+  .modern-table .icon-btn,
+  .elite-table .icon-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .ds-table .action-group,
+  .ds-table .elite-actions,
+  .modern-table .action-group,
+  .elite-table .action-group {
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* Badges in tables: compact */
   .ds-table .badge,
-  .ds-table .elite-badge,
   .ds-table .ds-badge,
   .modern-table .badge,
   .elite-table .badge {
-    min-width: 60px;
-    font-size: 10px;
-    padding: 3px 7px;
+    min-width: 55px !important;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
   }
 
   /* ── Form card ── */
@@ -1420,6 +1414,29 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
     width: 100%;
     text-align: center;
     justify-content: center;
+  }
+
+  /* ── Pipeline: stack columns vertically (fixes Image 1 squished columns) ── */
+  /* Any flex/grid row that holds pipeline stage columns */
+  .d-flex.gap-2,
+  [class*="pipeline"] > .d-flex,
+  .pipeline-columns,
+  .pipeline-board,
+  .kanban-board,
+  .kanban-columns {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    gap: 16px !important;
+  }
+
+  /* Each pipeline column takes full width */
+  .pipeline-column,
+  .kanban-column,
+  [class*="pipeline-col"],
+  [class*="kanban-col"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: 0 0 100% !important;
   }
 
   /* ── Contact card ── */

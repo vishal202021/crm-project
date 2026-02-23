@@ -5,6 +5,8 @@ WORKDIR /app
 COPY . .
 
 RUN apt-get update && apt-get install -y maven
+
+WORKDIR /app/crm_backend
 RUN mvn clean package -DskipTests
 
 EXPOSE 8080

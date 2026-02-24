@@ -32,7 +32,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/register",
-                                "/auth/admin"
+                                "/auth/admin",
+                                "/ping"
                         ).permitAll()
 
                         .requestMatchers(

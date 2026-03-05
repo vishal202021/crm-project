@@ -55,22 +55,23 @@ Password: Test@123
 - Git
 - REST API Architecture
 
----
+## Project Structure
 
-# Project Structure
-
+```
 crm-project
-├── crm_backend
-│ ├── controllers
-│ ├── services
-│ ├── repositories
-│ └── entities
 │
-├── crm_frontend
-│ ├── components
-│ ├── pages
-│ └── services
-
+├── crm_backend
+│   ├── controllers
+│   ├── services
+│   ├── repositories
+│   └── entities
+│
+└── crm_frontend
+    ├── components
+    ├── pages
+    └── services
+```
+---
 
 # System Architecture
 

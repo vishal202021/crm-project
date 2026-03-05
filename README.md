@@ -74,6 +74,13 @@ crm-project
 
 # System Architecture
 
+React Frontend
+|
+REST API
+|
+Spring Boot Backend
+|
+PostgreSQL Database
 
 React Frontend
 |

@@ -58,3 +58,41 @@ Password: Test@123
 ---
 
 # Project Structure
+
+crm-project
+├── crm_backend
+│ ├── controllers
+│ ├── services
+│ ├── repositories
+│ └── entities
+│
+├── crm_frontend
+│ ├── components
+│ ├── pages
+│ └── services
+
+
+# System Architecture
+
+
+React Frontend
+|
+REST API
+|
+Spring Boot Backend
+|
+PostgreSQL Database
+
+
+---
+
+# Author
+
+**Vishal Jadhav**  
+Java Backend / Full Stack Developer
+
+LinkedIn  
+https://www.linkedin.com/in/vishal-jadhav-479bb0277
+
+GitHub  
+https://github.com/vishal202021

@@ -82,15 +82,6 @@ Spring Boot Backend
 |
 PostgreSQL Database
 
-React Frontend
-|
-REST API
-|
-Spring Boot Backend
-|
-PostgreSQL Database
-
-
 ---
 
 # Author

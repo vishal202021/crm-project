@@ -3,23 +3,24 @@ import { useNavigate } from "react-router-dom";
 import api from "./api";
 import { toast } from "react-toastify";
 
-const emptyContact = {
-  name: "",
-  phone: "",
-  position: "",
-  primaryContact: false
-};
 
+
+
+const emptyContact = { 
+  name: "", phone: "", position: "", primaryContact: false 
+};
 const AddCustomer = () => {
 
   const navigate = useNavigate();
   const [saving,setSaving] = useState(false);
 
+  const today = new Date().toISOString().split("T")[0];
+
   const [c,setC] = useState({
     customerName:"",
     priority:"",
     branches:"",
-    leadGenerationDate:"",
+     leadGenerationDate: today,
     address:"",
     pinCode:"",
     referenceBy:"",
@@ -135,7 +136,6 @@ if(primaryCount !== 1){
 
     try{
       setSaving(true);
-    //  console.log("PAYLOAD:", JSON.stringify(c, null, 2));
       await api.post("/customers",{
         ...c,
         customerName:c.customerName.trim(),
@@ -185,8 +185,8 @@ if(primaryCount !== 1){
             <label>Branches</label>
             <input type="number" name="branches" className="elite-input" onChange={handleChange}/>
 
-            <label>Lead Date</label>
-            <input type="date" name="leadGenerationDate" className="elite-input" onChange={handleChange}/>
+<label>Lead Generation Date</label>         
+   <input type="date" name="leadGenerationDate" className="elite-input" onChange={handleChange}/>
 
             <label>Reference By</label>
             <input name="referenceBy" className="elite-input" onChange={handleChange}/>

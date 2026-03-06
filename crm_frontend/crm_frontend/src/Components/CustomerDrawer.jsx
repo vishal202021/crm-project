@@ -42,7 +42,6 @@ const CustomerDrawer = ({ customerId, onClose }) => {
 
 useEffect(() => {
 
-  // initial load
   loadData();
 
   const reload = () => {
@@ -98,23 +97,91 @@ useEffect(() => {
           <button className="elite-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="glass p-2 mb-2 compact-info">
+       <div className="glass p-3 mb-3">
 
-          <div className="d-flex justify-content-between mb-2">
-            <span className={`elite-badge ${badgeClass(customer.priority)}`}>
-              {customer.priority}
-            </span>
+        <h6 className="mb-3 fw-bold">Customer Details</h6>
 
-            <span className="text-muted">
-              {customer.taluka || "-"}
-            </span>
-          </div>
+        <div className="row">
 
-          <hr/>
+        <div className="col-6">
+        <p><b>Customer Name:</b> {customer.customerName}</p>
+        </div>
 
-          <p><b>Contact:</b> {customer.contactName}</p>
-          <p><b>Position:</b> {customer.position || "-"}</p>
-          <p><b>Address:</b> {customer.address || "-"}</p>
+        <div className="col-6">
+        <p>
+        <b>Priority:</b>
+        <span className={`elite-badge ms-2 ${badgeClass(customer.priority)}`}>
+        {customer.priority}
+        </span>
+        </p>
+        </div>
+
+        <div className="col-6">
+        <p><b>Branches:</b> {customer.branches || "-"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>Lead Date:</b> {customer.leadGenerationDate || "-"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>Reference By:</b> {customer.referenceBy || "-"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>Status:</b> {customer.status || "New"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>Pin Code:</b> {customer.pinCode || "-"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>State:</b> {customer.state || "-"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>District:</b> {customer.district || "-"}</p>
+        </div>
+
+        <div className="col-6">
+        <p><b>Taluka:</b> {customer.taluka || "-"}</p>
+        </div>
+
+        <div className="col-12">
+        <p><b>Address:</b> {customer.address || "-"}</p>
+        </div>
+
+        </div>
+
+        <hr/>
+
+        <h6 className="fw-bold mt-3">Contact Persons</h6>
+
+        {customer.contacts?.length === 0 && (
+        <p className="text-muted">No contacts</p>
+        )}
+
+        {customer.contacts?.map((ct,i)=>(
+        <div key={i} className="contact-card mb-2">
+
+        <p className="mb-1">
+        <b>{ct.name}</b>
+        {ct.primaryContact && (
+        <span className="badge bg-success ms-2">Primary</span>
+        )}
+        </p>
+
+        <p className="text-muted mb-0">
+        📞 {ct.phone}
+        </p>
+
+        <p className="text-muted mb-0">
+        💼 {ct.position || "-"}
+        </p>
+
+        </div>
+        ))}
 
         </div>
 
@@ -126,15 +193,6 @@ useEffect(() => {
           >
             📞 Call
           </button>
-
-          {role==="ADMIN" && (
-            <button
-              className="elite-btn-outline"
-              onClick={()=>navigate(`/app/edit-customer/${customer.id}`)}
-            >
-              ✏️ Edit
-            </button>
-          )}
 
         </div>
 

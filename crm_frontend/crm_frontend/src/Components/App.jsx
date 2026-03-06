@@ -26,6 +26,7 @@ import RoleProtectedRoute from "./RoleProtectedRoute";
 import RequireAuth from "./RequireAuth";
 import { getToken } from "./auth";
 
+import CustomerCallPage from "./CustomerCallPage";
 
 function AppRoutes() {
 
@@ -165,6 +166,14 @@ function AppRoutes() {
               </RoleProtectedRoute>
             }
           />
+          <Route
+  path="customer/:id"
+  element={
+    <RoleProtectedRoute roles={["ADMIN","USER"]}>
+      <CustomerCallPage />
+    </RoleProtectedRoute>
+  }
+/>
 
         </Route>
 

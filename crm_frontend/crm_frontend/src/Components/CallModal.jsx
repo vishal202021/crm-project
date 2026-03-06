@@ -5,7 +5,7 @@ import { getUsername } from "./auth";
 import { toast } from "react-toastify";
 import { emitCRMUpdate } from "./events";
 
-const CallModal = ({ customer, onClose, onSaved }) => {
+const CallModal = ({ customer, onClose, onSaved, fullPage = false }) => {
 
   const [saving, setSaving] = useState(false);
 
@@ -32,51 +32,25 @@ const CallModal = ({ customer, onClose, onSaved }) => {
   };
 
   useEffect(() => {
-
     if (!data.status) return;
 
-    // Auto suggest dates based on status
-    if (data.status === "Follow-up" && !data.nextFollowupDate) {
-      setData(prev => ({
-        ...prev,
-        nextFollowupDate: addDays(1)
-      }));
-    }
+    if (data.status === "Follow-up" && !data.nextFollowupDate)
+      setData(prev => ({ ...prev, nextFollowupDate: addDays(1) }));
 
-    if (data.status === "Interested") {
-      setData(prev => ({
-        ...prev,
-        nextFollowupDate: addDays(3)
-      }));
-    }
+    if (data.status === "Interested")
+      setData(prev => ({ ...prev, nextFollowupDate: addDays(3) }));
 
-    if (["Not Answered", "Busy", "Switched Off"].includes(data.status)) {
-      setData(prev => ({
-        ...prev,
-        nextFollowupDate: addDays(1)
-      }));
-    }
+    if (["Not Answered", "Busy", "Switched Off"].includes(data.status))
+      setData(prev => ({ ...prev, nextFollowupDate: addDays(1) }));
 
-    if (data.status === "Converted") {
-      setData(prev => ({
-        ...prev,
-        nextFollowupDate: addDays(7)
-      }));
-    }
+    if (data.status === "Converted")
+      setData(prev => ({ ...prev, nextFollowupDate: addDays(7) }));
 
-    if (data.status === "Not Interested") {
-      setData(prev => ({
-        ...prev,
-        nextFollowupDate: addDays(30)
-      }));
-    }
+    if (data.status === "Not Interested")
+      setData(prev => ({ ...prev, nextFollowupDate: addDays(30) }));
 
-    if (data.status === "Connected" && !data.nextFollowupDate) {
-      setData(prev => ({
-        ...prev,
-        nextFollowupDate: addDays(2)
-      }));
-    }
+    if (data.status === "Connected" && !data.nextFollowupDate)
+      setData(prev => ({ ...prev, nextFollowupDate: addDays(2) }));
 
   }, [data.status]);
 
@@ -116,7 +90,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
 
     const selected = new Date(data.nextFollowupDate);
     const today = new Date(todayStr);
-
     selected.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
 
@@ -146,16 +119,11 @@ const CallModal = ({ customer, onClose, onSaved }) => {
     };
 
     try {
-
       await api.post("/interactions", payload);
-
       toast.success("📞 Call logged");
-
       emitCRMUpdate();
-
       onSaved && onSaved();
       onClose();
-
     } catch (err) {
       console.error(err);
       toast.error("Failed to save call");
@@ -164,108 +132,126 @@ const CallModal = ({ customer, onClose, onSaved }) => {
     }
   };
 
-  return createPortal(
+  /* ── Shared form content ── */
+  const formContent = (
+    <>
+      <div className="glass p-3 mb-3">
+        <b>{customer.contactName || "-"}</b><br />
+        <span className="text-muted">{customer.contactNo || "-"}</span>
+      </div>
 
-    <div className="elite-modal-bg" onClick={onClose}>
-
-      <div
-        className="elite-modal"
-        onClick={e => e.stopPropagation()}
+      <select
+        className="elite-input w-100 mb-3"
+        value={data.status}
+        onChange={e => setData({ ...data, status: e.target.value })}
       >
+        <option value="">Call Outcome</option>
+        <option>Connected</option>
+        <option>Not Answered</option>
+        <option>Switched Off</option>
+        <option>Busy</option>
+        <option>Interested</option>
+        <option>Follow-up</option>
+        <option>Converted</option>
+        <option>Not Interested</option>
+      </select>
 
-        <h5>📞 Log Call</h5>
+      <textarea
+        rows="4"
+        maxLength={500}
+        className="elite-input w-100 mb-2"
+        placeholder="Remarks (required)"
+        value={data.followupDetails}
+        onChange={e => setData({ ...data, followupDetails: e.target.value })}
+      />
 
-        <p className="text-muted mb-3">
-          {customer.customerName || "Customer"}
-        </p>
+      <small className="text-muted d-block mb-3">
+        {(data.followupDetails || "").length}/500
+      </small>
 
-        <div className="glass p-3 mb-3">
-          <b>{customer.contactName || "-"}</b><br />
-          <span className="text-muted">
-            {customer.contactNo || "-"}
-          </span>
+      <div className="row g-2 mb-3">
+        <div className="col">
+          <input
+            type="date"
+            min={todayStr}
+            className="elite-input w-100"
+            value={data.nextFollowupDate}
+            onChange={e => setData({ ...data, nextFollowupDate: e.target.value })}
+          />
         </div>
+        <div className="col">
+          <input
+            className="elite-input w-100"
+            placeholder="Caller"
+            value={data.callBy}
+            onChange={e => setData({ ...data, callBy: e.target.value })}
+          />
+        </div>
+      </div>
 
-        <select
-          className="elite-input w-100 mb-3"
-          value={data.status}
-          onChange={e => setData({ ...data, status: e.target.value })}
+      <div className="d-flex gap-2">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="elite-save flex-fill"
         >
-          <option value="">Call Outcome</option>
-          <option>Connected</option>
-          <option>Not Answered</option>
-          <option>Switched Off</option>
-          <option>Busy</option>
-          <option>Interested</option>
-          <option>Follow-up</option>
-          <option>Converted</option>
-          <option>Not Interested</option>
-        </select>
+          {saving ? "Saving..." : "Save Call"}
+        </button>
 
-        <textarea
-          rows="3"
-          maxLength={500}
-          className="elite-input w-100 mb-2"
-          placeholder="Remarks (required)"
-          value={data.followupDetails}
-          onChange={e =>
-            setData({ ...data, followupDetails: e.target.value })
-          }
-        />
+        <button
+          onClick={onClose}
+          className="elite-cancel flex-fill"
+        >
+          Cancel
+        </button>
+      </div>
+    </>
+  );
 
-        <small className="text-muted d-block mb-3">
-          {(data.followupDetails || "").length}/500
-        </small>
+  /* ── Full-page mode ── */
+  if (fullPage) {
+    return (
+      <div className="page-wrap d-flex align-items-center justify-content-center"
+        style={{ minHeight: "calc(100vh - 70px)" }}
+      >
+        <div className="elite-form-card" style={{ width: 560 }}>
 
-        <div className="row g-2 mb-3">
-
-          <div className="col">
-            <input
-              type="date"
-              min={todayStr}
-              className="elite-input w-100"
-              value={data.nextFollowupDate}
-              onChange={e =>
-                setData({ ...data, nextFollowupDate: e.target.value })
-              }
-            />
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h4 style={{ fontSize: "1.4em" }}>📞 Log Call</h4>
+              <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
+                {customer.customerName || "Customer"}
+              </p>
+            </div>
+            <button className="elite-close" onClick={onClose}>✕</button>
           </div>
 
-          <div className="col">
-            <input
-              className="elite-input w-100"
-              placeholder="Caller"
-              value={data.callBy}
-              onChange={e =>
-                setData({ ...data, callBy: e.target.value })
-              }
-            />
+          {formContent}
+
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Default portal modal mode ── */
+  return createPortal(
+    <div className="elite-modal-bg" onClick={onClose}>
+      <div className="elite-modal" onClick={e => e.stopPropagation()}>
+
+        <div className="elite-modal-header">
+          <div>
+            <h5>📞 Log Call</h5>
+            <small className="text-muted">
+              {customer.customerName || "Customer"}
+            </small>
           </div>
-
+          <button className="elite-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="d-flex gap-2">
-
-          <button
-            onClick={save}
-            disabled={saving}
-            className="elite-save flex-fill"
-          >
-            {saving ? "Saving..." : "Save Call"}
-          </button>
-
-          <button
-            onClick={onClose}
-            className="elite-cancel flex-fill"
-          >
-            Cancel
-          </button>
-
-        </div>
+        {formContent}
 
       </div>
     </div>,
-
     document.body
   );
 };

@@ -1,174 +1,161 @@
-import { useEffect,useState } from "react";
-import { useParams,useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "./api";
 import CallModal from "./CallModal";
 
 const CustomerCallPage = () => {
 
-const {id} = useParams();
-const navigate = useNavigate();
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-const [customer,setCustomer] = useState(null);
-const [timeline,setTimeline] = useState([]);
-const [callOpen,setCallOpen] = useState(false);
+  const [customer, setCustomer] = useState(null);
+  const [timeline, setTimeline] = useState([]);
+  const [callOpen, setCallOpen] = useState(false);
 
-const load = async ()=>{
+  const load = async () => {
 
-const c = await api.get("/customers/"+id);
-setCustomer(c.data);
+    const c = await api.get("/customers/" + id);
+    setCustomer(c.data);
 
-const t = await api.get("/interactions/timeline/"+id);
+    const t = await api.get("/interactions/timeline/" + id);
 
-if(Array.isArray(t.data))
-setTimeline(t.data);
-else
-setTimeline(t.data.content || []);
+    if (Array.isArray(t.data))
+      setTimeline(t.data);
+    else
+      setTimeline(t.data.content || []);
+  };
 
-};
+  useEffect(() => {
+    load();
+  }, [id]);
 
-useEffect(()=>{
-load();
-},[id]);
+  if (!customer) return null;
 
-if(!customer) return null;
+  /* ── Full-page call modal ── */
+  if (callOpen) {
+    return (
+      <CallModal
+        customer={customer}
+        fullPage
+        onClose={() => setCallOpen(false)}
+        onSaved={load}
+      />
+    );
+  }
 
-return(
+  return (
 
-<div className="page-wrap">
+    <div className="page-wrap">
 
-<div className="ds-card mb-3 d-flex justify-content-between align-items-center">
+      {/* ── Header ── */}
+      <div className="ds-card mb-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h3>{customer.customerName}</h3>
+          <p>Customer Call History</p>
+        </div>
 
-<div>
-<h3>{customer.customerName}</h3>
-<p>Customer Call History</p>
-</div>
+        <button
+          className="elite-add-btn"
+          onClick={() => setCallOpen(true)}
+        >
+          📞 Log Call
+        </button>
+      </div>
 
-<button
-className="elite-add-btn"
-onClick={()=>setCallOpen(true)}
->
-📞 Log Call
-</button>
+      {/* ── 3-column grid ── */}
+      <div className="callpage-grid">
 
-</div>
+        {/* Col 1 – Customer Details */}
+        <div className="callpage-col">
+          <div className="ds-card">
 
+            <h5>Customer Details</h5>
 
-<div className="callpage-grid">
+            <p><b>Customer Name:</b> {customer.customerName}</p>
+            <p><b>Branches:</b> {customer.branches || "-"}</p>
+            <p><b>Priority:</b> {customer.priority}</p>
+            <p><b>Status:</b> {customer.status || "New"}</p>
+            <p><b>Reference:</b> {customer.referenceBy || "-"}</p>
+            <p><b>Lead Date:</b> {customer.leadGenerationDate}</p>
+            <p><b>Address:</b> {customer.address}</p>
+            <p><b>State:</b> {customer.state}</p>
+            <p><b>District:</b> {customer.district}</p>
+            <p><b>Taluka:</b> {customer.taluka}</p>
 
-<div className="callpage-col">
-<div className="ds-card">
+          </div>
+        </div>
 
-<h5>Customer Details</h5>
+        {/* Col 2 – Contact Persons */}
+        <div className="callpage-col">
+          <div className="ds-card">
 
-<p><b>Customer Name:</b> {customer.customerName}</p>
-<p><b>Branches:</b> {customer.branches || "-"}</p>
-<p><b>Priority:</b> {customer.priority}</p>
-<p><b>Status:</b> {customer.status || "New"}</p>
-<p><b>Reference:</b> {customer.referenceBy || "-"}</p>
+            <h5>Contact Persons</h5>
 
-<p><b>Lead Date:</b> {customer.leadGenerationDate}</p>
+            {customer.contacts?.map((c, i) => (
+              <div key={i} className="contact-card mb-3">
 
-<p><b>Address:</b> {customer.address}</p>
+                <b>{c.name}</b>
 
-<p><b>State:</b> {customer.state}</p>
-<p><b>District:</b> {customer.district}</p>
-<p><b>Taluka:</b> {customer.taluka}</p>
+                {c.primaryContact &&
+                  <span className="badge bg-success ms-2">Primary</span>
+                }
 
-</div>
+                <p className="mb-1">📞 {c.phone}</p>
+                <p className="text-muted">{c.position}</p>
 
-</div>
+              </div>
+            ))}
 
+          </div>
+        </div>
 
+        {/* Col 3 – Call Timeline */}
+        <div className="callpage-col">
+          <div className="ds-card">
 
-<div className="col-md-4">
+            <h5>Call Timeline</h5>
 
-<div className="ds-card">
+            <div className="ds-timeline">
 
-<h5>Contact Persons</h5>
+              {timeline.length === 0 &&
+                <p className="text-muted">No calls yet</p>
+              }
 
-{customer.contacts?.map((c,i)=>(
-<div key={i} className="contact-card mb-3">
+              {timeline.map(t => (
+                <div key={t.id} className="ds-timeline-item">
 
-<b>{c.name}</b>
+                  <div className="ds-dot"></div>
 
-{c.primaryContact &&
-<span className="badge bg-success ms-2">Primary</span>
-}
+                  <div className="ds-timeline-card">
 
-<p className="mb-1">📞 {c.phone}</p>
-<p className="text-muted">{c.position}</p>
+                    <div className="ds-time">
+                      {t.interactionDate}
+                    </div>
 
-</div>
-))}
+                    <strong>{t.status}</strong>
 
-</div>
+                    <p>{t.followupDetails}</p>
 
-</div>
+                    <small className="text-muted">
+                      Called by: {t.callBy || "-"}<br />
+                      Contact: {t.contactPerson || "-"}
+                    </small>
 
+                  </div>
 
-{/* CALL TIMELINE */}
+                </div>
+              ))}
 
-<div className="col-md-4">
+            </div>
 
-<div className="ds-card">
+          </div>
+        </div>
 
-<h5>Call Timeline</h5>
+      </div>
 
-<div className="ds-timeline">
+    </div>
 
-{timeline.length===0 &&
-<p className="text-muted">No calls yet</p>
-}
-
-{timeline.map(t=>(
-<div key={t.id} className="ds-timeline-item">
-
-<div className="ds-dot"></div>
-
-<div className="ds-timeline-card">
-
-<div className="ds-time">
-{t.interactionDate}
-</div>
-
-<strong>{t.status}</strong>
-
-<p>{t.followupDetails}</p>
-
-<small className="text-muted">
-
-Called by: {t.callBy || "-"}  
-<br/>
-Contact: {t.contactPerson || "-"}
-
-</small>
-
-</div>
-
-</div>
-))}
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-{callOpen &&
-
-<CallModal
-customer={customer}
-onClose={()=>setCallOpen(false)}
-onSaved={load}
-/>
-
-}
-
-</div>
-
-);
+  );
 
 };
 

@@ -53,12 +53,9 @@ onClick={()=>setCallOpen(true)}
 </div>
 
 
-<div className="row">
+<div className="callpage-grid">
 
-{/* CUSTOMER DETAILS */}
-
-<div className="col-md-4">
-
+<div className="callpage-col">
 <div className="ds-card">
 
 <h5>Customer Details</h5>
@@ -82,7 +79,6 @@ onClick={()=>setCallOpen(true)}
 </div>
 
 
-{/* CONTACT PERSONS */}
 
 <div className="col-md-4">
 

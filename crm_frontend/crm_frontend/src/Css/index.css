@@ -74,7 +74,6 @@ input::placeholder, textarea::placeholder {
   box-shadow: var(--glow-primary);
 }
 
-/* ─── App Shell ─── */
 .app-dark {
   background: radial-gradient(ellipse at top, #1e1b4b, #0a0e1a);
   background-attachment: fixed;
@@ -951,8 +950,8 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
   background: var(--glass-bg);
   backdrop-filter: blur(30px) saturate(180%);
   color: var(--text-main);
-  width: 450px;
-  max-width: 100%;
+  width:520px;
+max-width:95%;
   margin: auto;
   padding: 32px;
   border-radius: 24px;
@@ -1470,9 +1469,10 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
   }
 
   /* ── Modal ── */
-  .elite-modal-bg {
+   .elite-modal-bg {
     padding: 12px;
-    align-items: flex-end;
+    align-items: center;
+    justify-content:center;
   }
 
   .elite-modal {
@@ -1640,4 +1640,22 @@ textarea.elite-input { height: auto; resize: vertical; min-height: 100px; }
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+
+.callpage-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:20px;
+  margin-top:20px;
+}
+
+.callpage-col{
+  width:100%;
+}
+
+@media(max-width:1100px){
+  .callpage-grid{
+    grid-template-columns:1fr;
+  }
 }

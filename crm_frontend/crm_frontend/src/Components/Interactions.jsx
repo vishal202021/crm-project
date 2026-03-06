@@ -13,13 +13,7 @@ const Interactions = () => {
   const load = () => {
     setLoading(true);
     api.get("/interactions")
-      .then(res => {
-        const all = res.data || [];
-        /* Show Visit records — also include records with no callingType
-           (older entries saved before callingType was enforced)
-           Exclude only explicit "Call" records                          */
-        setList(all.filter(i => i.callingType !== "Call"));
-      })
+      .then(res => setList(res.data || []))
       .catch(() => toast.error("Failed to load visits"))
       .finally(() => setLoading(false));
   };
@@ -169,7 +163,7 @@ const Interactions = () => {
                         <button
                           onClick={() => handleDelete(i.id)}
                           className="icon-btn danger"
-                          title="Delete visit"
+                          title="Delete"
                         >
                           <i className="bi bi-trash" />
                         </button>

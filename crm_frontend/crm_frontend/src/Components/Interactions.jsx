@@ -13,10 +13,13 @@ const Interactions = () => {
   const load = () => {
     setLoading(true);
     api.get("/interactions")
-      .then(res => setList(
-        /* show only Visit-type records */
-        (res.data || []).filter(i => i.callingType === "Visit")
-      ))
+      .then(res => {
+        const all = res.data || [];
+        /* Show Visit records — also include records with no callingType
+           (older entries saved before callingType was enforced)
+           Exclude only explicit "Call" records                          */
+        setList(all.filter(i => i.callingType !== "Call"));
+      })
       .catch(() => toast.error("Failed to load visits"))
       .finally(() => setLoading(false));
   };
@@ -88,9 +91,8 @@ const Interactions = () => {
 
       {/* ── Table ── */}
       <div className="ds-card" style={{ padding: 0, overflow: "hidden" }}>
-
         {loading ? (
-          <div className="text-center p-4 text-muted" style={{ padding: "48px 0" }}>
+          <div style={{ textAlign: "center", padding: "48px 0", color: "#475569" }}>
             Loading visits...
           </div>
         ) : (
@@ -102,16 +104,17 @@ const Interactions = () => {
                   <th style={{ minWidth: 120 }}>Visit Date</th>
                   <th style={{ minWidth: 220 }}>Discussion Notes</th>
                   <th style={{ minWidth: 140 }}>Next Follow-up</th>
-                  <th style={{ minWidth: 130 }}>Visited By</th>
+                  <th style={{ minWidth: 140 }}>Visited By</th>
                   <th style={{ minWidth: 120 }}>Status</th>
                   <th style={{ minWidth: 70, textAlign: "center" }}>Delete</th>
                 </tr>
               </thead>
-
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "48px 16px", color: "#334155" }}>
+                    <td colSpan="7" style={{
+                      textAlign: "center", padding: "52px 16px", color: "#334155"
+                    }}>
                       <div style={{ fontSize: 36, marginBottom: 10 }}>🏢</div>
                       No visit records found
                     </td>
@@ -152,8 +155,8 @@ const Interactions = () => {
 
                       <td>
                         <span style={{
-                          fontSize: 12, fontWeight: 700, padding: "4px 12px",
-                          borderRadius: 20,
+                          fontSize: 12, fontWeight: 700,
+                          padding: "4px 12px", borderRadius: 20,
                           background: sc.bg, color: sc.color,
                           border: `1px solid ${sc.border}`,
                           whiteSpace: "nowrap"
@@ -179,7 +182,6 @@ const Interactions = () => {
             </table>
           </div>
         )}
-
       </div>
 
     </div>

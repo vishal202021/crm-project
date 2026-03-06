@@ -1,13 +1,14 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import api from "./api";
 import { getUsername } from "./auth";
 import { toast } from "react-toastify";
 import { emitCRMUpdate } from "./events";
 
-const CallModal = ({ customer, onClose, onSaved, fullPage = false }) => {
+const CallModal = ({ customer, onClose, onSaved }) => {
 
   const [saving, setSaving] = useState(false);
+  const dateRef = useRef(null);   // ← ref to open calendar on click
 
   const [data, setData] = useState({
     status: "",
@@ -32,6 +33,7 @@ const CallModal = ({ customer, onClose, onSaved, fullPage = false }) => {
   };
 
   useEffect(() => {
+
     if (!data.status) return;
 
     if (data.status === "Follow-up" && !data.nextFollowupDate)
@@ -132,112 +134,22 @@ const CallModal = ({ customer, onClose, onSaved, fullPage = false }) => {
     }
   };
 
-  /* ── Shared form content ── */
-  const formContent = (
-    <>
-      <div className="glass p-3 mb-3">
-        <b>{customer.contactName || "-"}</b><br />
-        <span className="text-muted">{customer.contactNo || "-"}</span>
-      </div>
+  // ── Open native calendar picker on click/tap ──
+  const openCalendar = () => {
+    try {
+      dateRef.current?.showPicker();
+    } catch {
+      dateRef.current?.click();
+    }
+  };
 
-      <select
-        className="elite-input w-100 mb-3"
-        value={data.status}
-        onChange={e => setData({ ...data, status: e.target.value })}
-      >
-        <option value="">Call Outcome</option>
-        <option>Connected</option>
-        <option>Not Answered</option>
-        <option>Switched Off</option>
-        <option>Busy</option>
-        <option>Interested</option>
-        <option>Follow-up</option>
-        <option>Converted</option>
-        <option>Not Interested</option>
-      </select>
-
-      <textarea
-        rows="4"
-        maxLength={500}
-        className="elite-input w-100 mb-2"
-        placeholder="Remarks (required)"
-        value={data.followupDetails}
-        onChange={e => setData({ ...data, followupDetails: e.target.value })}
-      />
-
-      <small className="text-muted d-block mb-3">
-        {(data.followupDetails || "").length}/500
-      </small>
-
-      <div className="row g-2 mb-3">
-        <div className="col">
-          <input
-            type="date"
-            min={todayStr}
-            className="elite-input w-100"
-            value={data.nextFollowupDate}
-            onChange={e => setData({ ...data, nextFollowupDate: e.target.value })}
-          />
-        </div>
-        <div className="col">
-          <input
-            className="elite-input w-100"
-            placeholder="Caller"
-            value={data.callBy}
-            onChange={e => setData({ ...data, callBy: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <div className="d-flex gap-2">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="elite-save flex-fill"
-        >
-          {saving ? "Saving..." : "Save Call"}
-        </button>
-
-        <button
-          onClick={onClose}
-          className="elite-cancel flex-fill"
-        >
-          Cancel
-        </button>
-      </div>
-    </>
-  );
-
-  /* ── Full-page mode ── */
-  if (fullPage) {
-    return (
-      <div className="page-wrap d-flex align-items-center justify-content-center"
-        style={{ minHeight: "calc(100vh - 70px)" }}
-      >
-        <div className="elite-form-card" style={{ width: 560 }}>
-
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <div>
-              <h4 style={{ fontSize: "1.4em" }}>📞 Log Call</h4>
-              <p className="text-muted" style={{ fontSize: 13, margin: 0 }}>
-                {customer.customerName || "Customer"}
-              </p>
-            </div>
-            <button className="elite-close" onClick={onClose}>✕</button>
-          </div>
-
-          {formContent}
-
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Default portal modal mode ── */
   return createPortal(
+
     <div className="elite-modal-bg" onClick={onClose}>
+
       <div className="elite-modal" onClick={e => e.stopPropagation()}>
 
+        {/* Header */}
         <div className="elite-modal-header">
           <div>
             <h5>📞 Log Call</h5>
@@ -248,10 +160,111 @@ const CallModal = ({ customer, onClose, onSaved, fullPage = false }) => {
           <button className="elite-close" onClick={onClose}>✕</button>
         </div>
 
-        {formContent}
+        {/* Contact card */}
+        <div className="glass p-3 mb-3">
+          <b>{customer.contactName || "-"}</b><br />
+          <span className="text-muted">{customer.contactNo || "-"}</span>
+        </div>
+
+        {/* Call Outcome */}
+        <label style={{
+          fontSize: 12, fontWeight: 700, color: "#94a3b8",
+          textTransform: "uppercase", letterSpacing: "0.06em",
+          display: "block", marginBottom: 6
+        }}>
+          Call Outcome
+        </label>
+        <select
+          className="elite-input w-100 mb-3"
+          value={data.status}
+          onChange={e => setData({ ...data, status: e.target.value })}
+        >
+          <option value="">Select outcome...</option>
+          <option>Connected</option>
+          <option>Not Answered</option>
+          <option>Switched Off</option>
+          <option>Busy</option>
+          <option>Interested</option>
+          <option>Follow-up</option>
+          <option>Converted</option>
+          <option>Not Interested</option>
+        </select>
+
+        {/* Remarks */}
+        <label style={{
+          fontSize: 12, fontWeight: 700, color: "#94a3b8",
+          textTransform: "uppercase", letterSpacing: "0.06em",
+          display: "block", marginBottom: 6
+        }}>
+          Remarks <span style={{ color: "#ef4444" }}>*</span>
+        </label>
+        <textarea
+          rows="3"
+          maxLength={500}
+          className="elite-input w-100 mb-2"
+          placeholder="Remarks (required)"
+          value={data.followupDetails}
+          onChange={e => setData({ ...data, followupDetails: e.target.value })}
+        />
+        <small className="text-muted d-block mb-3">
+          {(data.followupDetails || "").length}/500
+        </small>
+
+        {/* Next Follow-up Date — label as headline + calendar trigger */}
+        <label style={{
+          fontSize: 12, fontWeight: 700, color: "#94a3b8",
+          textTransform: "uppercase", letterSpacing: "0.06em",
+          display: "block", marginBottom: 6
+        }}>
+          📅 Next Follow-up Date
+        </label>
+        <div
+          style={{ position: "relative", marginBottom: 12, cursor: "pointer" }}
+          onClick={openCalendar}
+        >
+          <input
+            ref={dateRef}
+            type="date"
+            min={todayStr}
+            className="elite-input w-100"
+            value={data.nextFollowupDate}
+            onChange={e => setData({ ...data, nextFollowupDate: e.target.value })}
+            style={{ cursor: "pointer" }}
+          />
+        </div>
+
+        {/* Caller */}
+        <label style={{
+          fontSize: 12, fontWeight: 700, color: "#94a3b8",
+          textTransform: "uppercase", letterSpacing: "0.06em",
+          display: "block", marginBottom: 6
+        }}>
+          Called By
+        </label>
+        <input
+          className="elite-input w-100 mb-3"
+          placeholder="Your name"
+          value={data.callBy}
+          onChange={e => setData({ ...data, callBy: e.target.value })}
+        />
+
+        {/* Action buttons */}
+        <div className="d-flex gap-2">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="elite-save flex-fill"
+          >
+            {saving ? "Saving..." : "Save Call"}
+          </button>
+          <button onClick={onClose} className="elite-cancel flex-fill">
+            Cancel
+          </button>
+        </div>
 
       </div>
     </div>,
+
     document.body
   );
 };

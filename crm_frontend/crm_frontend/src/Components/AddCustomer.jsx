@@ -187,6 +187,7 @@ const AddCustomer = () => {
 
     <div className="page-wrap" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
 
+      {/* HEADER */}
       <div
         className="ds-card customer-header mb-3 d-flex justify-content-between align-items-center flex-wrap"
         style={{ gap: 12 }}
@@ -216,6 +217,7 @@ const AddCustomer = () => {
 
       </div>
 
+      {/* MAIN GRID */}
       <div
         style={{
           display: "grid",
@@ -224,6 +226,7 @@ const AddCustomer = () => {
         }}
       >
 
+        {/* BASIC INFO */}
         <div className="ds-card" style={{ padding: 26 }}>
 
           <Field label="Customer Name" required>
@@ -270,6 +273,7 @@ const AddCustomer = () => {
 
         </div>
 
+        {/* LOCATION */}
         <div className="ds-card" style={{ padding: 26 }}>
 
           <Field label="Pin Code">
@@ -323,13 +327,12 @@ const AddCustomer = () => {
             <div
               key={i}
               style={{
-                marginBottom: 16,
-                padding: "14px 16px",
-                borderRadius: 10,
+                marginBottom: 12,
+                padding: "12px",
+                borderRadius: 8,
                 border: ct.primaryContact
                   ? "1.5px solid #6366f1"
-                  : "1.5px solid #e2e8f0",
-                background: ct.primaryContact ? "#f5f3ff" : "#fafafa"
+                  : "1.5px solid rgba(255,255,255,0.08)",
               }}
             >
 
@@ -340,7 +343,7 @@ const AddCustomer = () => {
                 onChange={(e) =>
                   handleContactChange(i, "name", e.target.value)
                 }
-                style={{ marginBottom: 8 }}
+                style={{ marginBottom: 8, width: "100%", boxSizing: "border-box" }}
               />
 
               <input
@@ -351,7 +354,7 @@ const AddCustomer = () => {
                 onChange={(e) =>
                   handleContactChange(i, "phone", e.target.value)
                 }
-                style={{ marginBottom: 10 }}
+                style={{ marginBottom: 8, width: "100%", boxSizing: "border-box" }}
               />
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -359,17 +362,12 @@ const AddCustomer = () => {
                 <button
                   type="button"
                   onClick={() => setPrimary(i)}
+                  className={ct.primaryContact ? "elite-btn-primary" : "elite-btn-outline"}
                   style={{
                     flex: 1,
-                    padding: "6px 10px",
                     fontSize: 12,
-                    fontWeight: 600,
-                    borderRadius: 6,
-                    border: "none",
-                    cursor: "pointer",
-                    background: ct.primaryContact ? "#6366f1" : "#e0e7ff",
-                    color: ct.primaryContact ? "#ffffff" : "#4338ca",
-                    transition: "background 0.2s"
+                    padding: "5px 10px",
+                    cursor: "pointer"
                   }}
                 >
                   {ct.primaryContact ? "✓ Primary" : "Set Primary"}
@@ -379,16 +377,13 @@ const AddCustomer = () => {
                   <button
                     type="button"
                     onClick={() => removeContact(i)}
+                    className="elite-btn-outline"
                     style={{
-                      padding: "6px 10px",
                       fontSize: 12,
-                      fontWeight: 600,
-                      borderRadius: 6,
-                      border: "none",
+                      padding: "5px 10px",
                       cursor: "pointer",
-                      background: "#fee2e2",
-                      color: "#dc2626",
-                      transition: "background 0.2s"
+                      color: "#f87171",
+                      borderColor: "#f87171"
                     }}
                   >
                     Remove
@@ -403,18 +398,12 @@ const AddCustomer = () => {
           <button
             type="button"
             onClick={addContact}
+            className="elite-btn-outline"
             style={{
               width: "100%",
-              padding: "9px 0",
-              fontSize: 13,
-              fontWeight: 600,
-              borderRadius: 8,
-              border: "1.5px dashed #6366f1",
-              cursor: "pointer",
-              background: "transparent",
-              color: "#6366f1",
               marginTop: 4,
-              transition: "background 0.2s"
+              cursor: "pointer",
+              borderStyle: "dashed"
             }}
           >
             + Add Contact

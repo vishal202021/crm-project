@@ -26,5 +26,6 @@ public class InteractionDTO {
     private String callBy;
     private String visitedBy;
     private String callingType;
+    private String contactPerson;
 }
 

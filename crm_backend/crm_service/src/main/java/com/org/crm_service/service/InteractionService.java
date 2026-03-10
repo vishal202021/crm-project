@@ -25,13 +25,13 @@ public class InteractionService {
 
     public Interaction save(InteractionDTO dto){
 
-        Customer c=customerRepo
+        Customer c = customerRepo
                 .findByIdAndDeletedFalse(dto.getCustomerId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Customer not found"));
 
-        Interaction i=new Interaction();
-        BeanUtils.copyProperties(dto,i);
+        Interaction i = new Interaction();
+        BeanUtils.copyProperties(dto, i);
         i.setCustomer(c);
 
         return repo.save(i);
@@ -44,11 +44,8 @@ public class InteractionService {
     }
 
 
-
-
     public List<TodayFollowupDTO> today(){
-        return repo
-                .findTodayFollowups();
+        return repo.findTodayFollowups();
     }
 
     public List<Interaction> findAll(){
@@ -56,46 +53,43 @@ public class InteractionService {
     }
 
 
+    public Interaction update(Long id, InteractionDTO dto){
 
-    public Interaction update(Long id,
-                              InteractionDTO dto){
-
-        Interaction i=repo
+        Interaction i = repo
                 .findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Interaction not found"));
+                        new ResourceNotFoundException("Interaction not found"));
 
-        if(dto.getStatus()!=null)
+        if (dto.getStatus() != null)
             i.setStatus(dto.getStatus());
 
-        if(dto.getNextFollowupDate()!=null)
+        if (dto.getNextFollowupDate() != null)
             i.setNextFollowupDate(dto.getNextFollowupDate());
 
-        if(dto.getFollowupDetails()!=null)
+        if (dto.getFollowupDetails() != null)
             i.setFollowupDetails(dto.getFollowupDetails());
 
-        if(dto.getCallBy()!=null)
+        if (dto.getCallBy() != null)
             i.setCallBy(dto.getCallBy());
 
-        if(dto.getCallingType()!=null)
+        if (dto.getCallingType() != null)
             i.setCallingType(dto.getCallingType());
+
+        if (dto.getContactPerson() != null)
+            i.setContactPerson(dto.getContactPerson());
 
         return repo.save(i);
     }
 
 
-
     public void deleteInteraction(Long id){
 
-        Interaction i=repo
+        Interaction i = repo
                 .findByIdAndDeletedFalse(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Interaction not found"));
+                        new ResourceNotFoundException("Interaction not found"));
 
         i.setDeleted(true);
-
         repo.save(i);
     }
 

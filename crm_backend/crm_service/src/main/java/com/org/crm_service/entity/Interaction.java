@@ -21,6 +21,7 @@ public class Interaction {
     private String callBy;
     private String visitedBy;
     private String callingType;
+    private String contactPerson;
 
     @Column(nullable=false)
     private Boolean deleted=false;

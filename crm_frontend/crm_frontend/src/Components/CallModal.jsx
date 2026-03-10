@@ -32,6 +32,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
   const [saving,       setSaving]   = useState(false);
   const [timeline,     setTimeline] = useState([]);
   const [timelineLoad, setTimelineLoad] = useState(true);
+  const [fullCustomer, setFullCustomer] = useState(null);
   const dateRef = useRef(null);
 
   const [data, setData] = useState({
@@ -41,6 +42,19 @@ const CallModal = ({ customer, onClose, onSaved }) => {
     callBy:           getUsername() || "",
     contactPerson:    ""
   });
+
+  /* ── Fetch full customer (with contacts) if not already present ── */
+  useEffect(() => {
+    if (!customer?.id) return;
+    // If contacts already present, use as-is
+    if (customer.contacts?.length > 0) {
+      setFullCustomer(customer);
+    } else {
+      api.get("/customers/" + customer.id)
+        .then(res => setFullCustomer(res.data))
+        .catch(() => setFullCustomer(customer));
+    }
+  }, [customer?.id]);
 
   useEffect(() => {
     if (!customer?.id) return;
@@ -255,7 +269,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                 onChange={e => setData({ ...data, contactPerson: e.target.value })}
               >
                 <option value="">Select contact...</option>
-                {customer.contacts?.map((ct, i) => (
+                {(fullCustomer?.contacts || []).map((ct, i) => (
                   <option key={i} value={ct.name}>
                     {ct.name}{ct.primaryContact ? " ★" : ""}{ct.position ? ` — ${ct.position}` : ""}{ct.phone ? ` (${ct.phone})` : ""}
                   </option>
@@ -352,6 +366,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               </span>
             </div>
 
+            {/* Loading skeletons */}
             {timelineLoad && (
               [1,2,3].map(n => (
                 <div key={n} style={{ marginBottom: 16 }}>
@@ -360,6 +375,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               ))
             )}
 
+            {/* Empty state */}
             {!timelineLoad && timeline.length === 0 && (
               <div style={{
                 flex: 1, display: "flex", flexDirection: "column",
@@ -422,6 +438,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                         </span>
                       </div>
 
+                      {/* remarks */}
                       <p style={{
                         margin: "0 0 10px", fontSize: 12,
                         color: "#cbd5e1", lineHeight: 1.5

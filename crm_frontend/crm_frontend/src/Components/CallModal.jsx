@@ -5,6 +5,28 @@ import { getUsername } from "./auth";
 import { toast } from "react-toastify";
 import { emitCRMUpdate } from "./events";
 
+const Field = ({ label, children }) => (
+  <div style={{ marginBottom: 16 }}>
+    <label style={{
+      display: "block", fontSize: 11, fontWeight: 700,
+      color: "#64748b", textTransform: "uppercase",
+      letterSpacing: "0.08em", marginBottom: 7
+    }}>
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const Skeleton = () => (
+  <div style={{
+    height: 13, borderRadius: 6, marginBottom: 10,
+    background: "linear-gradient(90deg,rgba(148,163,184,0.07) 25%,rgba(148,163,184,0.14) 50%,rgba(148,163,184,0.07) 75%)",
+    backgroundSize: "200% 100%",
+    animation: "shimmer 1.4s infinite"
+  }} />
+);
+
 const CallModal = ({ customer, onClose, onSaved }) => {
 
   const [saving,       setSaving]   = useState(false);
@@ -119,28 +141,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
     return "#a5b4fc";
   };
 
-  const Field = ({ label, children }) => (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{
-        display: "block", fontSize: 11, fontWeight: 700,
-        color: "#64748b", textTransform: "uppercase",
-        letterSpacing: "0.08em", marginBottom: 7
-      }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-
-  const Skeleton = () => (
-    <div style={{
-      height: 13, borderRadius: 6, marginBottom: 10,
-      background: "linear-gradient(90deg,rgba(148,163,184,0.07) 25%,rgba(148,163,184,0.14) 50%,rgba(148,163,184,0.07) 75%)",
-      backgroundSize: "200% 100%",
-      animation: "shimmer 1.4s infinite"
-    }} />
-  );
-
   return createPortal(
     <div
       onClick={onClose}
@@ -228,7 +228,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               Fill in the call details below
             </div>
 
-            <Field label="Call Outcome *">
+            <Field label={<>Call Outcome <span style={{ color: "#ef4444" }}>*</span></>}>
               <select
                 className="elite-input w-100"
                 value={data.status}
@@ -262,7 +262,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
             </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label="📅 Next Follow-up Date *">
+              <Field label={<>📅 Next Follow-up Date <span style={{ color: "#ef4444" }}>*</span></>}>
                 <div style={{ cursor: "pointer" }} onClick={openCalendar}>
                   <input
                     ref={dateRef}
@@ -356,7 +356,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               </div>
             )}
 
-            {/* Timeline */}
             {!timelineLoad && timeline.length > 0 && (
               <div style={{
                 borderLeft: "2px solid rgba(99,102,241,0.2)",
@@ -368,7 +367,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                     display: "flex", gap: 0,
                     marginBottom: 18, position: "relative"
                   }}>
-                    {/* dot */}
                     <div style={{
                       position: "absolute", left: -21, top: 7,
                       width: 10, height: 10,
@@ -407,7 +405,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                         </span>
                       </div>
 
-                      {/* remarks */}
                       <p style={{
                         margin: "0 0 10px", fontSize: 12,
                         color: "#cbd5e1", lineHeight: 1.5
@@ -417,7 +414,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                         }
                       </p>
 
-                      {/* meta */}
                       <div style={{
                         display: "flex", flexDirection: "column", gap: 4,
                         padding: "8px 10px",

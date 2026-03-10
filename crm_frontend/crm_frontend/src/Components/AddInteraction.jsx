@@ -3,6 +3,19 @@ import api from "./api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
+const Field = ({ label, required, children }) => (
+  <div style={{ marginBottom: 18 }}>
+    <label style={{
+      display: "block", fontSize: 11, fontWeight: 700,
+      color: "#64748b", textTransform: "uppercase",
+      letterSpacing: "0.08em", marginBottom: 7
+    }}>
+      {label}{required && <span style={{ color: "#ef4444", marginLeft: 3 }}>*</span>}
+    </label>
+    {children}
+  </div>
+);
+
 const AddInteraction = () => {
 
   const navigate  = useNavigate();
@@ -19,23 +32,20 @@ const AddInteraction = () => {
 
   const [form, setForm] = useState({
     customerId:       "",
-    customerName:     "",   // display only
+    customerName:     "",
     interactionDate:  today,
     followupDetails:  "",
     nextFollowupDate: "",
     status:           "",
     visitedBy:        "",
-    /* callingType is always "Visit" — never sent as Call */
   });
 
-  /* ── Load customers for search dropdown ── */
   useEffect(() => {
     api.get("/customers/summary", { params: { page: 0, size: 200 } })
       .then(res => setCustomers(res.data.content || []))
       .catch(() => {});
   }, []);
 
-  /* ── Close dropdown on outside click ── */
   useEffect(() => {
     const handler = (e) => {
       if (dropRef.current && !dropRef.current.contains(e.target))
@@ -91,7 +101,7 @@ const AddInteraction = () => {
         status:           form.status,
         visitedBy:        form.visitedBy.trim(),
         callBy:           null,
-        callingType:      "Visit",   /* always Visit */
+        callingType:      "Visit",
       });
       toast.success("✅ Visit recorded!");
       setTimeout(() => navigate("/app/interactions"), 1200);
@@ -105,20 +115,6 @@ const AddInteraction = () => {
       setSaving(false);
     }
   };
-
-  /* ── field wrapper ── */
-  const Field = ({ label, required, children }) => (
-    <div style={{ marginBottom: 18 }}>
-      <label style={{
-        display: "block", fontSize: 11, fontWeight: 700,
-        color: "#64748b", textTransform: "uppercase",
-        letterSpacing: "0.08em", marginBottom: 7
-      }}>
-        {label}{required && <span style={{ color: "#ef4444", marginLeft: 3 }}>*</span>}
-      </label>
-      {children}
-    </div>
-  );
 
   return (
     <div className="page-wrap" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -149,7 +145,6 @@ const AddInteraction = () => {
         </div>
       </div>
 
-      {/* ── 2-column form ── */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
@@ -157,7 +152,7 @@ const AddInteraction = () => {
         alignItems: "start"
       }}>
 
-        {/* ════ LEFT ════ */}
+        
         <div className="ds-card" style={{ padding: "26px 28px" }}>
           <div style={{
             fontSize: 11, fontWeight: 700, color: "#4f46e5",
@@ -166,7 +161,6 @@ const AddInteraction = () => {
             Visit Details
           </div>
 
-          {/* Customer Search */}
           <Field label="Customer" required>
             <div style={{ position: "relative" }} ref={dropRef}>
               <input
@@ -211,7 +205,6 @@ const AddInteraction = () => {
             </div>
           </Field>
 
-          {/* Visit Date */}
           <Field label="Visit Date" required>
             <div style={{ cursor: "pointer" }} onClick={() => openPicker(visitDateRef)}>
               <input
@@ -227,7 +220,6 @@ const AddInteraction = () => {
             </div>
           </Field>
 
-          {/* Visited By */}
           <Field label="Visited By" required>
             <input
               name="visitedBy"
@@ -257,7 +249,6 @@ const AddInteraction = () => {
 
         </div>
 
-        {/* ════ RIGHT ════ */}
         <div className="ds-card" style={{ padding: "26px 28px" }}>
           <div style={{
             fontSize: 11, fontWeight: 700, color: "#4f46e5",
@@ -266,7 +257,6 @@ const AddInteraction = () => {
             Notes & Follow-up
           </div>
 
-          {/* Discussion Notes */}
           <Field label="Discussion Notes">
             <textarea
               name="followupDetails"
@@ -285,7 +275,6 @@ const AddInteraction = () => {
             </div>
           </Field>
 
-          {/* Next Follow-up Date */}
           <Field label="📅 Next Follow-up Date">
             <div style={{ cursor: "pointer" }} onClick={() => openPicker(followupDateRef)}>
               <input
@@ -305,7 +294,6 @@ const AddInteraction = () => {
 
       </div>
 
-      {/* ── Bottom buttons ── */}
       <div style={{
         display: "flex", gap: 14, justifyContent: "flex-end",
         paddingBottom: 8

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "./api";
 import { toast } from "react-toastify";
 
-/* ───────────────── FIELD COMPONENT (MOVED OUTSIDE) ───────────────── */
 const Field = ({ label, required, children }) => (
   <div style={{ marginBottom: 16 }}>
     <label
@@ -65,7 +64,7 @@ const AddCustomer = () => {
   const handleContactChange = (i, field, value) => {
     setC(prev => {
       const list = [...prev.contacts];
-      list[i][field] = value;
+      list[i] = { ...list[i], [field]: value };
       return { ...prev, contacts: list };
     });
   };
@@ -188,7 +187,6 @@ const AddCustomer = () => {
 
     <div className="page-wrap" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
 
-      {/* HEADER */}
       <div
         className="ds-card customer-header mb-3 d-flex justify-content-between align-items-center flex-wrap"
         style={{ gap: 12 }}
@@ -218,7 +216,6 @@ const AddCustomer = () => {
 
       </div>
 
-      {/* MAIN GRID */}
       <div
         style={{
           display: "grid",
@@ -227,7 +224,6 @@ const AddCustomer = () => {
         }}
       >
 
-        {/* BASIC INFO */}
         <div className="ds-card" style={{ padding: 26 }}>
 
           <Field label="Customer Name" required>
@@ -274,7 +270,6 @@ const AddCustomer = () => {
 
         </div>
 
-        {/* LOCATION */}
         <div className="ds-card" style={{ padding: 26 }}>
 
           <Field label="Pin Code">
@@ -318,11 +313,25 @@ const AddCustomer = () => {
 
         </div>
 
-        {/* CONTACTS */}
         <div className="ds-card" style={{ padding: 26 }}>
 
+          <Field label="Contacts" required>
+            <div />
+          </Field>
+
           {c.contacts.map((ct, i) => (
-            <div key={`${i}-${ct.phone}`} style={{ marginBottom: 15 }}>
+            <div
+              key={i}
+              style={{
+                marginBottom: 16,
+                padding: "14px 16px",
+                borderRadius: 10,
+                border: ct.primaryContact
+                  ? "1.5px solid #6366f1"
+                  : "1.5px solid #e2e8f0",
+                background: ct.primaryContact ? "#f5f3ff" : "#fafafa"
+              }}
+            >
 
               <input
                 placeholder="Contact Name"
@@ -331,29 +340,85 @@ const AddCustomer = () => {
                 onChange={(e) =>
                   handleContactChange(i, "name", e.target.value)
                 }
+                style={{ marginBottom: 8 }}
               />
 
               <input
-                placeholder="Phone"
+                placeholder="Phone (10 digits)"
                 className="elite-input"
                 value={ct.phone}
+                maxLength={10}
                 onChange={(e) =>
                   handleContactChange(i, "phone", e.target.value)
                 }
+                style={{ marginBottom: 10 }}
               />
 
-              <button onClick={() => setPrimary(i)}>
-                {ct.primaryContact ? "Primary" : "Set Primary"}
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
 
-              {c.contacts.length > 1 && (
-                <button onClick={() => removeContact(i)}>Remove</button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setPrimary(i)}
+                  style={{
+                    flex: 1,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 6,
+                    border: "none",
+                    cursor: "pointer",
+                    background: ct.primaryContact ? "#6366f1" : "#e0e7ff",
+                    color: ct.primaryContact ? "#ffffff" : "#4338ca",
+                    transition: "background 0.2s"
+                  }}
+                >
+                  {ct.primaryContact ? "✓ Primary" : "Set Primary"}
+                </button>
+
+                {c.contacts.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeContact(i)}
+                    style={{
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      borderRadius: 6,
+                      border: "none",
+                      cursor: "pointer",
+                      background: "#fee2e2",
+                      color: "#dc2626",
+                      transition: "background 0.2s"
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+
+              </div>
 
             </div>
           ))}
 
-          <button onClick={addContact}>+ Add Contact</button>
+          <button
+            type="button"
+            onClick={addContact}
+            style={{
+              width: "100%",
+              padding: "9px 0",
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 8,
+              border: "1.5px dashed #6366f1",
+              cursor: "pointer",
+              background: "transparent",
+              color: "#6366f1",
+              marginTop: 4,
+              transition: "background 0.2s"
+            }}
+          >
+            + Add Contact
+          </button>
 
         </div>
 

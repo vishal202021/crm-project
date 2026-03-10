@@ -38,7 +38,8 @@ const CallModal = ({ customer, onClose, onSaved }) => {
     status:           "",
     followupDetails:  "",
     nextFollowupDate: "",
-    callBy:           getUsername() || ""
+    callBy:           getUsername() || "",
+    contactPerson:    ""
   });
 
   useEffect(() => {
@@ -113,6 +114,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
         followupDetails:  data.followupDetails.trim(),
         nextFollowupDate: data.nextFollowupDate,
         callBy:           data.callBy.trim() || null,
+        contactPerson:    data.contactPerson || null,
         callingType:      "Call"
       });
       toast.success("📞 Call logged");
@@ -246,6 +248,21 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               </select>
             </Field>
 
+            <Field label="Contact Person Called">
+              <select
+                className="elite-input w-100"
+                value={data.contactPerson}
+                onChange={e => setData({ ...data, contactPerson: e.target.value })}
+              >
+                <option value="">Select contact...</option>
+                {customer.contacts?.map((ct, i) => (
+                  <option key={i} value={ct.name}>
+                    {ct.name}{ct.primaryContact ? " ★" : ""}{ct.position ? ` — ${ct.position}` : ""}{ct.phone ? ` (${ct.phone})` : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
             <Field label={<>Remarks <span style={{ color: "#ef4444" }}>*</span></>}>
               <textarea
                 rows="7"
@@ -335,7 +352,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               </span>
             </div>
 
-            {/* Loading skeletons */}
             {timelineLoad && (
               [1,2,3].map(n => (
                 <div key={n} style={{ marginBottom: 16 }}>
@@ -344,7 +360,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               ))
             )}
 
-            {/* Empty state */}
             {!timelineLoad && timeline.length === 0 && (
               <div style={{
                 flex: 1, display: "flex", flexDirection: "column",
@@ -356,6 +371,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
               </div>
             )}
 
+            {/* Timeline */}
             {!timelineLoad && timeline.length > 0 && (
               <div style={{
                 borderLeft: "2px solid rgba(99,102,241,0.2)",
@@ -367,6 +383,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                     display: "flex", gap: 0,
                     marginBottom: 18, position: "relative"
                   }}>
+                    {/* dot */}
                     <div style={{
                       position: "absolute", left: -21, top: 7,
                       width: 10, height: 10,
@@ -414,6 +431,7 @@ const CallModal = ({ customer, onClose, onSaved }) => {
                         }
                       </p>
 
+                      {/* meta */}
                       <div style={{
                         display: "flex", flexDirection: "column", gap: 4,
                         padding: "8px 10px",

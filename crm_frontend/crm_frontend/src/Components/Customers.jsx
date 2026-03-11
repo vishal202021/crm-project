@@ -418,24 +418,26 @@ const Customers = () => {
             }}>
               Filter by Date Added
             </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>From</div>
                 <input
                   type="date"
-                  className="elite-input w-100"
+                  className="elite-input"
                   value={exportDateFrom}
                   onChange={e => setExportDateFrom(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box" }}
                 />
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>To</div>
                 <input
                   type="date"
-                  className="elite-input w-100"
+                  className="elite-input"
                   value={exportDateTo}
                   min={exportDateFrom || undefined}
                   onChange={e => setExportDateTo(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box" }}
                 />
               </div>
             </div>
@@ -643,7 +645,6 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* ── Pagination ── */}
       <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
         <button className="elite-add-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
         <span className="fw-semibold" style={{ color: "#94a3b8", fontSize: 14 }}>Page {page + 1} of {totalPages}</span>

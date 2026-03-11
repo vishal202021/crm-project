@@ -55,6 +55,7 @@ const exportToExcel = (rows, fileName) => {
   URL.revokeObjectURL(url);
 };
 
+/* ─────────────────────────────────────────────── */
 
 const Customers = () => {
 
@@ -68,12 +69,14 @@ const Customers = () => {
   const [exporting,      setExporting]      = useState(false);
   const [exportProgress, setExportProgress] = useState("");
 
-  /* Export panel state */
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [exportDateFrom,  setExportDateFrom]  = useState("");
   const [exportDateTo,    setExportDateTo]    = useState("");
   const [exportStatus,    setExportStatus]    = useState("");
-  const panelRef = useRef(null);
+  const [panelPos,        setPanelPos]        = useState({ top: 0, right: 0 });
+
+  const panelRef  = useRef(null);
+  const buttonRef = useRef(null);
 
   const [page,       setPage]       = useState(0);
   const [size]                      = useState(10);
@@ -103,14 +106,31 @@ const Customers = () => {
     return () => window.removeEventListener(CRM_EVENTS.DATA_UPDATED, reload);
   }, [page, direction]);
 
+  /* Close panel on outside click */
   useEffect(() => {
     const handler = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target))
+      if (
+        panelRef.current  && !panelRef.current.contains(e.target) &&
+        buttonRef.current && !buttonRef.current.contains(e.target)
+      ) {
         setShowExportPanel(false);
+      }
     };
     if (showExportPanel) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showExportPanel]);
+
+  const togglePanel = () => {
+    if (exporting) return;
+    if (!showExportPanel && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPanelPos({
+        top:   rect.bottom + 10,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setShowExportPanel(v => !v);
+  };
 
   const handleDelete = (id) => {
     Swal.fire({
@@ -143,7 +163,6 @@ const Customers = () => {
     return matchSearch && matchStatus;
   });
 
-  /* ── Quick date presets ── */
   const applyPreset = (preset) => {
     const today = new Date();
     const fmt   = d => d.toISOString().split("T")[0];
@@ -164,22 +183,20 @@ const Customers = () => {
     }
   };
 
-  /* ── Export handler ── */
   const handleExport = async () => {
     try {
       setExporting(true);
       setShowExportPanel(false);
       setExportProgress("Fetching customer list...");
 
-      const fromDate = exportDateFrom ? new Date(exportDateFrom)              : null;
-      const toDate   = exportDateTo   ? new Date(exportDateTo + "T23:59:59")  : null;
+      const fromDate = exportDateFrom ? new Date(exportDateFrom)             : null;
+      const toDate   = exportDateTo   ? new Date(exportDateTo + "T23:59:59") : null;
 
       if (fromDate && toDate && fromDate > toDate) {
         toast.error("From date cannot be after To date");
         return;
       }
 
-      /* Step 1: collect all matching rows across all pages */
       const summaryRows = [];
       let p = 0, totalP = 1;
 
@@ -218,7 +235,6 @@ const Customers = () => {
         return;
       }
 
-      /* Step 2: fetch full data for each customer (batches of 10) */
       const BATCH    = 10;
       const fullData = [];
 
@@ -241,35 +257,32 @@ const Customers = () => {
         const primary = c.contacts?.find(ct => ct.primaryContact) || c.contacts?.[0];
         return {
           "Sr. No.":        idx + 1,
-          "Customer Name":  c.customerName             || "",
-          "Contact Person": primary?.name              || c.contactName || "",
-          "Mobile No.":     primary?.phone             || c.contactNo   || "",
-          "Position":       primary?.position          || "",
-          "Status":         c.status                   || "New",
+          "Customer Name":  c.customerName            || "",
+          "Contact Person": primary?.name             || c.contactName || "",
+          "Mobile No.":     primary?.phone            || c.contactNo   || "",
+          "Position":       primary?.position         || "",
+          "Status":         c.status                  || "New",
           "Last Call Date": c.lastCallDate ? formatDate(c.lastCallDate) : "No calls",
-          "Priority":       c.priority                 || "",
-          "Branches":       c.branches                 || "",
-          "Reference By":   c.referenceBy              || "",
-          "Lead Date":      c.leadGenerationDate        || "",
-          "Address":        c.address                  || "",
-          "State":          c.state                    || "",
-          "District":       c.district                 || "",
-          "Taluka":         c.taluka                   || "",
-          "Pin Code":       c.pinCode                  || "",
+          "Priority":       c.priority                || "",
+          "Branches":       c.branches                || "",
+          "Reference By":   c.referenceBy             || "",
+          "Lead Date":      c.leadGenerationDate       || "",
+          "Address":        c.address                 || "",
+          "State":          c.state                   || "",
+          "District":       c.district                || "",
+          "Taluka":         c.taluka                  || "",
+          "Pin Code":       c.pinCode                 || "",
         };
       });
 
-      /* Smart filename */
-      const today      = new Date().toISOString().split("T")[0];
-      const sPart      = exportStatus ? `_${exportStatus.replace(/\s+/g, "-")}` : "_All";
-      const dPart      = exportDateFrom && exportDateTo
+      const today  = new Date().toISOString().split("T")[0];
+      const sPart  = exportStatus ? `_${exportStatus.replace(/\s+/g, "-")}` : "_All";
+      const dPart  = exportDateFrom && exportDateTo
         ? `_${exportDateFrom}_to_${exportDateTo}`
         : exportDateFrom ? `_from_${exportDateFrom}`
         : exportDateTo   ? `_till_${exportDateTo}`
         : "";
-      const fileName = `Customers${sPart}${dPart}_${today}.xls`;
-
-      exportToExcel(exportData, fileName);
+      exportToExcel(exportData, `Customers${sPart}${dPart}_${today}.xls`);
       toast.success(`✅ Exported ${exportData.length} customers`);
 
     } catch (err) {
@@ -297,196 +310,42 @@ const Customers = () => {
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
 
-          {/* ── Export Button + Panel ── */}
-          <div ref={panelRef} style={{ position: "relative" }}>
-
-            <button
-              onClick={() => !exporting && setShowExportPanel(v => !v)}
-              disabled={exporting}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "10px 20px", borderRadius: 12, border: "none",
-                background: exporting
-                  ? "rgba(16,185,129,0.15)"
-                  : "linear-gradient(135deg,#10b981,#059669)",
-                color: exporting ? "#10b981" : "#fff",
-                fontWeight: 700, fontSize: 13,
-                cursor: exporting ? "not-allowed" : "pointer",
-                boxShadow: exporting ? "none" : "0 6px 20px rgba(16,185,129,0.35)",
-                transition: "all 0.25s",
-                opacity: exporting ? 0.8 : 1,
-                whiteSpace: "nowrap", minWidth: 170,
-              }}
-            >
-              <span style={{ fontSize: 16 }}>📊</span>
-              <span>{exporting ? (exportProgress || "Exporting...") : "Export to Excel"}</span>
-              {exportFilterCount > 0 && !exporting && (
-                <span style={{
-                  background: "rgba(255,255,255,0.3)", borderRadius: "50%",
-                  width: 20, height: 20, display: "flex",
-                  alignItems: "center", justifyContent: "center",
-                  fontSize: 11, fontWeight: 800
-                }}>
-                  {exportFilterCount}
-                </span>
-              )}
-              {!exporting && (
-                <span style={{ fontSize: 10, opacity: 0.7 }}>{showExportPanel ? "▲" : "▼"}</span>
-              )}
-            </button>
-
-            {/* ── Export Filter Dropdown ── */}
-            {showExportPanel && (
-              <div style={{
-                position: "absolute", top: "calc(100% + 10px)", right: 0,
-                zIndex: 9999,
-                background: "rgba(13,17,28,0.98)",
-                border: "1px solid rgba(148,163,184,0.15)",
-                borderRadius: 18,
-                boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
-                padding: "22px 24px",
-                width: 350,
-                backdropFilter: "blur(20px)",
+          {/* Export Button */}
+          <button
+            ref={buttonRef}
+            onClick={togglePanel}
+            disabled={exporting}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 20px", borderRadius: 12, border: "none",
+              background: exporting
+                ? "rgba(16,185,129,0.15)"
+                : "linear-gradient(135deg,#10b981,#059669)",
+              color: exporting ? "#10b981" : "#fff",
+              fontWeight: 700, fontSize: 13,
+              cursor: exporting ? "not-allowed" : "pointer",
+              boxShadow: exporting ? "none" : "0 6px 20px rgba(16,185,129,0.35)",
+              transition: "all 0.25s",
+              opacity: exporting ? 0.8 : 1,
+              whiteSpace: "nowrap", minWidth: 170,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>📊</span>
+            <span>{exporting ? (exportProgress || "Exporting...") : "Export to Excel"}</span>
+            {exportFilterCount > 0 && !exporting && (
+              <span style={{
+                background: "rgba(255,255,255,0.3)", borderRadius: "50%",
+                width: 20, height: 20, display: "flex",
+                alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 800
               }}>
-
-                {/* top accent */}
-                <div style={{
-                  position: "absolute", top: 0, left: 0, right: 0, height: 2,
-                  borderRadius: "18px 18px 0 0",
-                  background: "linear-gradient(90deg,transparent,#10b981,#059669,transparent)"
-                }} />
-
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 20 }}>
-                  📊 Export Options
-                </div>
-
-                {/* Status */}
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{
-                    display: "block", fontSize: 10, fontWeight: 700, color: "#64748b",
-                    textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7
-                  }}>
-                    Filter by Status
-                  </label>
-                  <select
-                    className="elite-input w-100"
-                    value={exportStatus}
-                    onChange={e => setExportStatus(e.target.value)}
-                  >
-                    <option value="">All Status</option>
-                    <option>Interested</option>
-                    <option>Follow-up</option>
-                    <option>Connected</option>
-                    <option>Converted</option>
-                    <option>Not Interested</option>
-                    <option>Closed</option>
-                  </select>
-                </div>
-
-                {/* Date range */}
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{
-                    display: "block", fontSize: 10, fontWeight: 700, color: "#64748b",
-                    textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7
-                  }}>
-                    Filter by Date Added
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>From</div>
-                      <input
-                        type="date"
-                        className="elite-input w-100"
-                        value={exportDateFrom}
-                        onChange={e => setExportDateFrom(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>To</div>
-                      <input
-                        type="date"
-                        className="elite-input w-100"
-                        value={exportDateTo}
-                        min={exportDateFrom || undefined}
-                        onChange={e => setExportDateTo(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick presets */}
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 10, color: "#475569", marginBottom: 8, fontWeight: 600 }}>
-                    QUICK SELECT
-                  </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {[
-                      { key: "today",  label: "Today"     },
-                      { key: "week",   label: "This Week" },
-                      { key: "month",  label: "This Month"},
-                      { key: "last30", label: "Last 30d"  },
-                      { key: "clear",  label: "✕ Clear"   },
-                    ].map(pr => (
-                      <button
-                        key={pr.key}
-                        onClick={() => applyPreset(pr.key)}
-                        style={{
-                          padding: "5px 12px", borderRadius: 8, border: "none",
-                          background: pr.key === "clear"
-                            ? "rgba(239,68,68,0.12)" : "rgba(99,102,241,0.15)",
-                          color: pr.key === "clear" ? "#ef4444" : "#a5b4fc",
-                          fontSize: 11, fontWeight: 600, cursor: "pointer",
-                        }}
-                      >
-                        {pr.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Active filter preview */}
-                {(exportStatus || exportDateFrom || exportDateTo) && (
-                  <div style={{
-                    background: "rgba(16,185,129,0.07)",
-                    border: "1px solid rgba(16,185,129,0.2)",
-                    borderRadius: 10, padding: "10px 14px",
-                    fontSize: 12, color: "#10b981",
-                    marginBottom: 16, lineHeight: 1.7
-                  }}>
-                    {exportStatus   && <div>📌 Status: <b>{exportStatus}</b></div>}
-                    {exportDateFrom && <div>📅 From: <b>{exportDateFrom}</b></div>}
-                    {exportDateTo   && <div>📅 To: <b>{exportDateTo}</b></div>}
-                  </div>
-                )}
-
-                {/* Buttons */}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={handleExport}
-                    style={{
-                      flex: 1, padding: "12px 0", borderRadius: 10, border: "none",
-                      background: "linear-gradient(135deg,#10b981,#059669)",
-                      color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
-                      boxShadow: "0 4px 15px rgba(16,185,129,0.3)",
-                    }}
-                  >
-                    📥 Download Excel
-                  </button>
-                  <button
-                    onClick={() => setShowExportPanel(false)}
-                    style={{
-                      padding: "12px 16px", borderRadius: 10, border: "none",
-                      background: "rgba(148,163,184,0.1)", color: "#94a3b8",
-                      fontWeight: 600, fontSize: 13, cursor: "pointer",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-              </div>
+                {exportFilterCount}
+              </span>
             )}
-          </div>
+            {!exporting && (
+              <span style={{ fontSize: 10, opacity: 0.7 }}>{showExportPanel ? "▲" : "▼"}</span>
+            )}
+          </button>
 
           {role === "ADMIN" && (
             <button
@@ -498,6 +357,161 @@ const Customers = () => {
           )}
         </div>
       </div>
+
+      {/* ── Export Filter Panel (fixed portal-style) ── */}
+      {showExportPanel && (
+        <div
+          ref={panelRef}
+          style={{
+            position: "fixed",
+            top:   panelPos.top,
+            right: panelPos.right,
+            zIndex: 99999,
+            background: "rgba(13,17,28,0.98)",
+            border: "1px solid rgba(148,163,184,0.15)",
+            borderRadius: 18,
+            boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
+            padding: "22px 24px",
+            width: 350,
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          {/* top accent */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, height: 2,
+            borderRadius: "18px 18px 0 0",
+            background: "linear-gradient(90deg,transparent,#10b981,#059669,transparent)"
+          }} />
+
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 20 }}>
+            📊 Export Options
+          </div>
+
+          {/* Status */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: "block", fontSize: 10, fontWeight: 700, color: "#64748b",
+              textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7
+            }}>
+              Filter by Status
+            </label>
+            <select
+              className="elite-input w-100"
+              value={exportStatus}
+              onChange={e => setExportStatus(e.target.value)}
+            >
+              <option value="">All Status</option>
+              <option>Interested</option>
+              <option>Follow-up</option>
+              <option>Connected</option>
+              <option>Converted</option>
+              <option>Not Interested</option>
+              <option>Closed</option>
+            </select>
+          </div>
+
+          {/* Date range */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{
+              display: "block", fontSize: 10, fontWeight: 700, color: "#64748b",
+              textTransform: "uppercase", letterSpacing: "0.09em", marginBottom: 7
+            }}>
+              Filter by Date Added
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>From</div>
+                <input
+                  type="date"
+                  className="elite-input w-100"
+                  value={exportDateFrom}
+                  onChange={e => setExportDateFrom(e.target.value)}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 5 }}>To</div>
+                <input
+                  type="date"
+                  className="elite-input w-100"
+                  value={exportDateTo}
+                  min={exportDateFrom || undefined}
+                  onChange={e => setExportDateTo(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick presets */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: "#475569", marginBottom: 8, fontWeight: 600 }}>
+              QUICK SELECT
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { key: "today",  label: "Today"      },
+                { key: "week",   label: "This Week"  },
+                { key: "month",  label: "This Month" },
+                { key: "last30", label: "Last 30d"   },
+                { key: "clear",  label: "✕ Clear"    },
+              ].map(pr => (
+                <button
+                  key={pr.key}
+                  onClick={() => applyPreset(pr.key)}
+                  style={{
+                    padding: "5px 12px", borderRadius: 8, border: "none",
+                    background: pr.key === "clear"
+                      ? "rgba(239,68,68,0.12)" : "rgba(99,102,241,0.15)",
+                    color: pr.key === "clear" ? "#ef4444" : "#a5b4fc",
+                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  {pr.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Active filter preview */}
+          {(exportStatus || exportDateFrom || exportDateTo) && (
+            <div style={{
+              background: "rgba(16,185,129,0.07)",
+              border: "1px solid rgba(16,185,129,0.2)",
+              borderRadius: 10, padding: "10px 14px",
+              fontSize: 12, color: "#10b981",
+              marginBottom: 16, lineHeight: 1.7
+            }}>
+              {exportStatus   && <div>📌 Status: <b>{exportStatus}</b></div>}
+              {exportDateFrom && <div>📅 From: <b>{exportDateFrom}</b></div>}
+              {exportDateTo   && <div>📅 To: <b>{exportDateTo}</b></div>}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={handleExport}
+              style={{
+                flex: 1, padding: "12px 0", borderRadius: 10, border: "none",
+                background: "linear-gradient(135deg,#10b981,#059669)",
+                color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(16,185,129,0.3)",
+              }}
+            >
+              📥 Download Excel
+            </button>
+            <button
+              onClick={() => setShowExportPanel(false)}
+              style={{
+                padding: "12px 16px", borderRadius: 10, border: "none",
+                background: "rgba(148,163,184,0.1)", color: "#94a3b8",
+                fontWeight: 600, fontSize: 13, cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Table Filters ── */}
       <div className="ds-card mb-3 compact">
@@ -629,6 +643,7 @@ const Customers = () => {
         </div>
       </div>
 
+      {/* ── Pagination ── */}
       <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
         <button className="elite-add-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
         <span className="fw-semibold" style={{ color: "#94a3b8", fontSize: 14 }}>Page {page + 1} of {totalPages}</span>

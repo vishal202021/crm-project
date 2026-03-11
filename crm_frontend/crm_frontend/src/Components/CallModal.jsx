@@ -43,10 +43,8 @@ const CallModal = ({ customer, onClose, onSaved }) => {
     contactPerson:    ""
   });
 
-  /* ── Fetch full customer (with contacts) if not already present ── */
   useEffect(() => {
     if (!customer?.id) return;
-    // If contacts already present, use as-is
     if (customer.contacts?.length > 0) {
       setFullCustomer(customer);
     } else {
@@ -225,14 +223,12 @@ const CallModal = ({ customer, onClose, onSaved }) => {
           <button className="elite-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* ── 2-column body ── */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "1fr 360px",
           flex: 1, minHeight: 0, overflow: "hidden"
         }}>
 
-          {/* ════ COL 1 — Log Call Form ════ */}
           <div style={{
             borderRight: "1px solid rgba(148,163,184,0.08)",
             padding: "28px 32px",
@@ -337,7 +333,6 @@ const CallModal = ({ customer, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* ════ COL 2 — Call History ════ */}
           <div style={{
             padding: "22px 20px",
             overflowY: "auto",

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import api from "./api";
 import { getRole } from "./auth";
 import CallModal from "./CallModal";
@@ -12,10 +13,11 @@ const Customers = () => {
   const role     = getRole();
   const navigate = useNavigate();
 
-  const [list,        setList]        = useState([]);
-  const [search,      setSearch]      = useState("");
-  const [statusFilter,setStatusFilter]= useState("");
-  const [selected,    setSelected]    = useState(null);
+  const [list,         setList]         = useState([]);
+  const [search,       setSearch]       = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [selected,     setSelected]     = useState(null);
+  const [exporting,    setExporting]    = useState(false);
 
   const [page,       setPage]       = useState(0);
   const [size]                      = useState(10);
@@ -69,6 +71,7 @@ const Customers = () => {
     });
   };
 
+  /* ── Filtered list (current page) ── */
   const filtered = list.filter(c => {
     const matchSearch =
       c.customerName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,6 +79,110 @@ const Customers = () => {
     const matchStatus = !statusFilter || c.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  /* ────────────────────────────────────────────
+     EXPORT TO EXCEL
+     Fetches ALL pages that match active filters,
+     then exports as .xlsx using SheetJS
+  ──────────────────────────────────────────── */
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      toast.info("⏳ Preparing export...");
+
+      /* Fetch all pages for current filters */
+      const allRows = [];
+      let p = 0;
+      let totalP = 1;
+
+      while (p < totalP) {
+        const res = await api.get("/customers/summary", {
+          params: { page: p, size: 200, sortBy, direction }
+        });
+
+        const content = res.data.content || [];
+        totalP = res.data.totalPages || 1;
+
+        /* Apply same frontend filters */
+        const pageFiltered = content.filter(c => {
+          const matchSearch =
+            c.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+            c.contactNo?.includes(search);
+          const matchStatus = !statusFilter || c.status === statusFilter;
+          return matchSearch && matchStatus;
+        });
+
+        allRows.push(...pageFiltered);
+        p++;
+      }
+
+      if (allRows.length === 0) {
+        toast.warning("No data to export with current filters");
+        return;
+      }
+
+      /* Map to clean export columns */
+      const exportData = allRows.map((c, idx) => ({
+        "Sr. No.":           idx + 1,
+        "Customer Name":     c.customerName    || "",
+        "Contact Person":    c.contactName     || "",
+        "Mobile No.":        c.contactNo       || "",
+        "Status":            c.status          || "New",
+        "Last Call Date":    c.lastCallDate ? new Date(c.lastCallDate).toLocaleDateString("en-GB") : "No calls",
+        "Priority":          c.priority        || "",
+        "Branches":          c.branches        || "",
+        "Reference By":      c.referenceBy     || "",
+        "Lead Date":         c.leadGenerationDate || "",
+        "Address":           c.address         || "",
+        "State":             c.state           || "",
+        "District":          c.district        || "",
+        "Taluka":            c.taluka          || "",
+        "Pin Code":          c.pinCode         || "",
+      }));
+
+      /* Build workbook */
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      /* Column widths */
+      ws["!cols"] = [
+        { wch: 7  },   // Sr No
+        { wch: 40 },   // Customer Name
+        { wch: 22 },   // Contact Person
+        { wch: 15 },   // Mobile
+        { wch: 15 },   // Status
+        { wch: 16 },   // Last Call Date
+        { wch: 12 },   // Priority
+        { wch: 10 },   // Branches
+        { wch: 20 },   // Reference
+        { wch: 14 },   // Lead Date
+        { wch: 35 },   // Address
+        { wch: 14 },   // State
+        { wch: 14 },   // District
+        { wch: 14 },   // Taluka
+        { wch: 10 },   // Pin Code
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Customers");
+
+      /* Build filename: Customers_Interested_2026-03-11.xlsx */
+      const datePart   = new Date().toISOString().split("T")[0];
+      const statusPart = statusFilter ? `_${statusFilter.replace(/\s+/g, "-")}` : "_All";
+      const fileName   = `Customers${statusPart}_${datePart}.xlsx`;
+
+      XLSX.writeFile(wb, fileName);
+      toast.success(`✅ Exported ${allRows.length} customers to ${fileName}`);
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  /* ── Active filter label for export button tooltip ── */
+  const filterLabel = statusFilter || (search ? `"${search}"` : "All");
 
   return (
     <div className="page-wrap">
@@ -87,14 +194,52 @@ const Customers = () => {
           <h3>Customers</h3>
           <p>Main working screen for follow-ups</p>
         </div>
-        {role === "ADMIN" && (
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+
+          {/* Export Button */}
           <button
-            onClick={() => navigate("/app/add-customers")}
-            className="elite-add-btn"
+            onClick={handleExport}
+            disabled={exporting}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 20px", borderRadius: 12, border: "none",
+              background: exporting
+                ? "rgba(16,185,129,0.15)"
+                : "linear-gradient(135deg,#10b981,#059669)",
+              color: exporting ? "#10b981" : "#fff",
+              fontWeight: 700, fontSize: 13, cursor: exporting ? "not-allowed" : "pointer",
+              boxShadow: exporting ? "none" : "0 6px 20px rgba(16,185,129,0.35)",
+              transition: "all 0.25s",
+              opacity: exporting ? 0.7 : 1,
+              whiteSpace: "nowrap",
+            }}
+            title={`Export ${filterLabel} customers to Excel`}
           >
-            <i className="bi bi-plus-lg"></i> Add Customer
+            <span style={{ fontSize: 16 }}>📊</span>
+            {exporting ? "Exporting..." : `Export to Excel`}
+            {/* show active filter chip inside button */}
+            {(statusFilter || search) && !exporting && (
+              <span style={{
+                background: "rgba(255,255,255,0.25)",
+                borderRadius: 8, padding: "2px 8px",
+                fontSize: 11, fontWeight: 600
+              }}>
+                {filterLabel}
+              </span>
+            )}
           </button>
-        )}
+
+          {/* Add Customer */}
+          {role === "ADMIN" && (
+            <button
+              onClick={() => navigate("/app/add-customers")}
+              className="elite-add-btn"
+            >
+              <i className="bi bi-plus-lg"></i> Add Customer
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Filters ── */}
@@ -112,13 +257,14 @@ const Customers = () => {
             <select
               className="elite-input"
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
             >
               <option value="">All Status</option>
               <option>Interested</option>
               <option>Follow-up</option>
               <option>Connected</option>
               <option>Converted</option>
+              <option>Not Interested</option>
               <option>Closed</option>
             </select>
           </div>
@@ -135,6 +281,60 @@ const Customers = () => {
         </div>
       </div>
 
+      {/* ── Active filter indicator ── */}
+      {(statusFilter || search) && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          marginBottom: 12, flexWrap: "wrap"
+        }}>
+          <span style={{ fontSize: 12, color: "#64748b" }}>Active filters:</span>
+
+          {statusFilter && (
+            <span style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(99,102,241,0.15)", color: "#a5b4fc",
+              border: "1px solid rgba(99,102,241,0.3)",
+              borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600
+            }}>
+              Status: {statusFilter}
+              <button
+                onClick={() => setStatusFilter("")}
+                style={{
+                  background: "none", border: "none", color: "#a5b4fc",
+                  cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1
+                }}
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          {search && (
+            <span style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(245,158,11,0.12)", color: "#f59e0b",
+              border: "1px solid rgba(245,158,11,0.3)",
+              borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600
+            }}>
+              Search: "{search}"
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  background: "none", border: "none", color: "#f59e0b",
+                  cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1
+                }}
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          <span style={{ fontSize: 12, color: "#475569" }}>
+            — Export will include only these results
+          </span>
+        </div>
+      )}
+
       {/* ── Table ── */}
       <div className="ds-card" style={{ padding: 0, overflow: "hidden" }}>
         <div className="table-wrap">
@@ -146,7 +346,6 @@ const Customers = () => {
                 <th style={{ minWidth: 120 }}>Mobile No.</th>
                 <th style={{ minWidth: 100 }}>Status</th>
                 <th style={{ minWidth: 120 }}>Last Call Date</th>
-                {/* ← Single Actions column replacing 3 separate ones */}
                 <th style={{ minWidth: 130, textAlign: "center" }}>Actions</th>
               </tr>
             </thead>
@@ -154,7 +353,7 @@ const Customers = () => {
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="text-center text-muted" style={{ padding: "40px 16px" }}>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "40px 16px", color: "#334155" }}>
                     No customers found
                   </td>
                 </tr>
@@ -163,7 +362,6 @@ const Customers = () => {
               {filtered.map(c => (
                 <tr key={c.id}>
 
-                  {/* Customer Name — clickable */}
                   <td
                     className="fw-semibold"
                     style={{ cursor: "pointer", maxWidth: 220, wordBreak: "break-word", whiteSpace: "normal" }}
@@ -187,11 +385,8 @@ const Customers = () => {
                     {formatDate(c.lastCallDate)}
                   </td>
 
-                  {/* ── All 3 actions in one cell ── */}
                   <td>
                     <div className="action-group" style={{ justifyContent: "center", gap: 8 }}>
-
-                      {/* Call */}
                       <button
                         onClick={() => setSelected(c)}
                         className="icon-btn call"
@@ -199,8 +394,6 @@ const Customers = () => {
                       >
                         <i className="bi bi-telephone"></i>
                       </button>
-
-                      {/* View */}
                       <button
                         onClick={() => navigate(`/app/customer/${c.id}`)}
                         className="icon-btn primary"
@@ -208,8 +401,6 @@ const Customers = () => {
                       >
                         <i className="bi bi-eye"></i>
                       </button>
-
-                      {/* Delete — only for ADMIN */}
                       {role === "ADMIN" && (
                         <button
                           onClick={() => handleDelete(c.id)}
@@ -219,7 +410,6 @@ const Customers = () => {
                           <i className="bi bi-trash"></i>
                         </button>
                       )}
-
                     </div>
                   </td>
 
@@ -252,7 +442,6 @@ const Customers = () => {
         </button>
       </div>
 
-      {/* ── Call Modal ── */}
       {selected && (
         <CallModal
           customer={selected}

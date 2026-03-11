@@ -8,7 +8,6 @@ import Swal from "sweetalert2";
 import { CRM_EVENTS } from "./events";
 
 const exportToExcel = (rows, fileName) => {
-
   const esc = (v) =>
     String(v ?? "")
       .replace(/&/g, "&amp;")
@@ -25,7 +24,7 @@ const exportToExcel = (rows, fileName) => {
   const dataRows = rows.map(row =>
     "<Row>" +
     headers.map(h => {
-      const val = row[h];
+      const val  = row[h];
       const type = typeof val === "number" ? "Number" : "String";
       return `<Cell><Data ss:Type="${type}">${esc(val)}</Data></Cell>`;
     }).join("") +
@@ -71,6 +70,7 @@ const Customers = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [selected,     setSelected]     = useState(null);
   const [exporting,    setExporting]    = useState(false);
+  const [exportProgress, setExportProgress] = useState("");
 
   const [page,       setPage]       = useState(0);
   const [size]                      = useState(10);
@@ -132,13 +132,12 @@ const Customers = () => {
     return matchSearch && matchStatus;
   });
 
-  /* ── Export: fetch all pages, apply filters, download ── */
   const handleExport = async () => {
     try {
       setExporting(true);
-      toast.info("⏳ Preparing export...");
+      setExportProgress("Fetching customer list...");
 
-      const allRows = [];
+      const summaryRows = [];
       let p = 0, totalP = 1;
 
       while (p < totalP) {
@@ -147,7 +146,7 @@ const Customers = () => {
         });
         totalP = res.data.totalPages || 1;
 
-        const pageFiltered = (res.data.content || []).filter(c => {
+        const filtered = (res.data.content || []).filter(c => {
           const matchSearch =
             c.customerName?.toLowerCase().includes(search.toLowerCase()) ||
             c.contactNo?.includes(search);
@@ -155,32 +154,61 @@ const Customers = () => {
           return matchSearch && matchStatus;
         });
 
-        allRows.push(...pageFiltered);
+        summaryRows.push(...filtered);
         p++;
       }
 
-      if (allRows.length === 0) {
+      if (summaryRows.length === 0) {
         toast.warning("No data to export with current filters");
         return;
       }
 
-      const exportData = allRows.map((c, idx) => ({
-        "Sr. No.":        idx + 1,
-        "Customer Name":  c.customerName            || "",
-        "Contact Person": c.contactName             || "",
-        "Mobile No.":     c.contactNo               || "",
-        "Status":         c.status                  || "New",
-        "Last Call Date": formatDate(c.lastCallDate),
-        "Priority":       c.priority                || "",
-        "Branches":       c.branches                || "",
-        "Reference By":   c.referenceBy             || "",
-        "Lead Date":      c.leadGenerationDate       || "",
-        "Address":        c.address                 || "",
-        "State":          c.state                   || "",
-        "District":       c.district                || "",
-        "Taluka":         c.taluka                  || "",
-        "Pin Code":       c.pinCode                 || "",
-      }));
+      const BATCH = 10;
+      const fullData = [];
+
+      for (let i = 0; i < summaryRows.length; i += BATCH) {
+        const batch = summaryRows.slice(i, i + BATCH);
+        setExportProgress(
+          `Loading details... ${Math.min(i + BATCH, summaryRows.length)} / ${summaryRows.length}`
+        );
+
+        const results = await Promise.allSettled(
+          batch.map(s => api.get("/customers/" + s.id))
+        );
+
+        results.forEach((res, idx) => {
+          if (res.status === "fulfilled") {
+            fullData.push(res.value.data);
+          } else {
+            fullData.push(batch[idx]);
+          }
+        });
+      }
+
+      setExportProgress("Building Excel file...");
+
+      const exportData = fullData.map((c, idx) => {
+        const primary = c.contacts?.find(ct => ct.primaryContact) || c.contacts?.[0];
+
+        return {
+          "Sr. No.":         idx + 1,
+          "Customer Name":   c.customerName           || "",
+          "Contact Person":  primary?.name            || c.contactName  || "",
+          "Mobile No.":      primary?.phone           || c.contactNo    || "",
+          "Position":        primary?.position        || "",
+          "Status":          c.status                 || "New",
+          "Last Call Date":  c.lastCallDate ? formatDate(c.lastCallDate) : "No calls",
+          "Priority":        c.priority               || "",
+          "Branches":        c.branches               || "",
+          "Reference By":    c.referenceBy            || "",
+          "Lead Date":       c.leadGenerationDate      || "",
+          "Address":         c.address                || "",
+          "State":           c.state                  || "",
+          "District":        c.district               || "",
+          "Taluka":          c.taluka                 || "",
+          "Pin Code":        c.pinCode                || "",
+        };
+      });
 
       const datePart   = new Date().toISOString().split("T")[0];
       const statusPart = statusFilter
@@ -189,13 +217,14 @@ const Customers = () => {
       const fileName = `Customers${statusPart}_${datePart}.xls`;
 
       exportToExcel(exportData, fileName);
-      toast.success(`✅ Exported ${allRows.length} customers`);
+      toast.success(`✅ Exported ${exportData.length} customers`);
 
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
     } finally {
       setExporting(false);
+      setExportProgress("");
     }
   };
 
@@ -204,7 +233,6 @@ const Customers = () => {
   return (
     <div className="page-wrap">
 
-      {/* ── Header ── */}
       <div className="ds-card mb-3 d-flex justify-content-between align-items-center flex-wrap"
         style={{ gap: 12 }}>
         <div>
@@ -214,7 +242,6 @@ const Customers = () => {
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
 
-          {/* Export Button */}
           <button
             onClick={handleExport}
             disabled={exporting}
@@ -230,12 +257,18 @@ const Customers = () => {
               cursor: exporting ? "not-allowed" : "pointer",
               boxShadow: exporting ? "none" : "0 6px 20px rgba(16,185,129,0.35)",
               transition: "all 0.25s",
-              opacity: exporting ? 0.7 : 1,
+              opacity: exporting ? 0.8 : 1,
               whiteSpace: "nowrap",
+              minWidth: 160,
             }}
           >
             <span style={{ fontSize: 16 }}>📊</span>
-            {exporting ? "Exporting..." : "Export to Excel"}
+            <span>
+              {exporting
+                ? (exportProgress || "Exporting...")
+                : "Export to Excel"
+              }
+            </span>
             {(statusFilter || search) && !exporting && (
               <span style={{
                 background: "rgba(255,255,255,0.25)",
@@ -258,7 +291,6 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* ── Filters ── */}
       <div className="ds-card mb-3 compact">
         <div className="row g-2">
           <div className="col-md-4">
@@ -358,7 +390,6 @@ const Customers = () => {
               </tr>
             </thead>
             <tbody>
-
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", padding: "40px 16px", color: "#334155" }}>
@@ -366,7 +397,6 @@ const Customers = () => {
                   </td>
                 </tr>
               )}
-
               {filtered.map(c => (
                 <tr key={c.id}>
                   <td
@@ -416,7 +446,6 @@ const Customers = () => {
                   </td>
                 </tr>
               ))}
-
             </tbody>
           </table>
         </div>

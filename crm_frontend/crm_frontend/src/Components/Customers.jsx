@@ -1,12 +1,65 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx";
 import api from "./api";
 import { getRole } from "./auth";
 import CallModal from "./CallModal";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import { CRM_EVENTS } from "./events";
+
+const exportToExcel = (rows, fileName) => {
+
+  const esc = (v) =>
+    String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+  const headers = Object.keys(rows[0]);
+
+  const headerRow = headers
+    .map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${esc(h)}</Data></Cell>`)
+    .join("");
+
+  const dataRows = rows.map(row =>
+    "<Row>" +
+    headers.map(h => {
+      const val = row[h];
+      const type = typeof val === "number" ? "Number" : "String";
+      return `<Cell><Data ss:Type="${type}">${esc(val)}</Data></Cell>`;
+    }).join("") +
+    "</Row>"
+  ).join("");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="header">
+      <Font ss:Bold="1" ss:Color="#FFFFFF"/>
+      <Interior ss:Color="#4F46E5" ss:Pattern="Solid"/>
+      <Alignment ss:Horizontal="Center"/>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Customers">
+    <Table>
+      <Row>${headerRow}</Row>
+      ${dataRows}
+    </Table>
+  </Worksheet>
+</Workbook>`;
+
+  const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 
 const Customers = () => {
 
@@ -71,7 +124,6 @@ const Customers = () => {
     });
   };
 
-  /* ── Filtered list (current page) ── */
   const filtered = list.filter(c => {
     const matchSearch =
       c.customerName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -80,31 +132,22 @@ const Customers = () => {
     return matchSearch && matchStatus;
   });
 
-  /* ────────────────────────────────────────────
-     EXPORT TO EXCEL
-     Fetches ALL pages that match active filters,
-     then exports as .xlsx using SheetJS
-  ──────────────────────────────────────────── */
+  /* ── Export: fetch all pages, apply filters, download ── */
   const handleExport = async () => {
     try {
       setExporting(true);
       toast.info("⏳ Preparing export...");
 
-      /* Fetch all pages for current filters */
       const allRows = [];
-      let p = 0;
-      let totalP = 1;
+      let p = 0, totalP = 1;
 
       while (p < totalP) {
         const res = await api.get("/customers/summary", {
           params: { page: p, size: 200, sortBy, direction }
         });
-
-        const content = res.data.content || [];
         totalP = res.data.totalPages || 1;
 
-        /* Apply same frontend filters */
-        const pageFiltered = content.filter(c => {
+        const pageFiltered = (res.data.content || []).filter(c => {
           const matchSearch =
             c.customerName?.toLowerCase().includes(search.toLowerCase()) ||
             c.contactNo?.includes(search);
@@ -121,57 +164,32 @@ const Customers = () => {
         return;
       }
 
-      /* Map to clean export columns */
       const exportData = allRows.map((c, idx) => ({
-        "Sr. No.":           idx + 1,
-        "Customer Name":     c.customerName    || "",
-        "Contact Person":    c.contactName     || "",
-        "Mobile No.":        c.contactNo       || "",
-        "Status":            c.status          || "New",
-        "Last Call Date":    c.lastCallDate ? new Date(c.lastCallDate).toLocaleDateString("en-GB") : "No calls",
-        "Priority":          c.priority        || "",
-        "Branches":          c.branches        || "",
-        "Reference By":      c.referenceBy     || "",
-        "Lead Date":         c.leadGenerationDate || "",
-        "Address":           c.address         || "",
-        "State":             c.state           || "",
-        "District":          c.district        || "",
-        "Taluka":            c.taluka          || "",
-        "Pin Code":          c.pinCode         || "",
+        "Sr. No.":        idx + 1,
+        "Customer Name":  c.customerName            || "",
+        "Contact Person": c.contactName             || "",
+        "Mobile No.":     c.contactNo               || "",
+        "Status":         c.status                  || "New",
+        "Last Call Date": formatDate(c.lastCallDate),
+        "Priority":       c.priority                || "",
+        "Branches":       c.branches                || "",
+        "Reference By":   c.referenceBy             || "",
+        "Lead Date":      c.leadGenerationDate       || "",
+        "Address":        c.address                 || "",
+        "State":          c.state                   || "",
+        "District":       c.district                || "",
+        "Taluka":         c.taluka                  || "",
+        "Pin Code":       c.pinCode                 || "",
       }));
 
-      /* Build workbook */
-      const ws = XLSX.utils.json_to_sheet(exportData);
-
-      /* Column widths */
-      ws["!cols"] = [
-        { wch: 7  },   // Sr No
-        { wch: 40 },   // Customer Name
-        { wch: 22 },   // Contact Person
-        { wch: 15 },   // Mobile
-        { wch: 15 },   // Status
-        { wch: 16 },   // Last Call Date
-        { wch: 12 },   // Priority
-        { wch: 10 },   // Branches
-        { wch: 20 },   // Reference
-        { wch: 14 },   // Lead Date
-        { wch: 35 },   // Address
-        { wch: 14 },   // State
-        { wch: 14 },   // District
-        { wch: 14 },   // Taluka
-        { wch: 10 },   // Pin Code
-      ];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Customers");
-
-      /* Build filename: Customers_Interested_2026-03-11.xlsx */
       const datePart   = new Date().toISOString().split("T")[0];
-      const statusPart = statusFilter ? `_${statusFilter.replace(/\s+/g, "-")}` : "_All";
-      const fileName   = `Customers${statusPart}_${datePart}.xlsx`;
+      const statusPart = statusFilter
+        ? `_${statusFilter.replace(/\s+/g, "-")}`
+        : "_All";
+      const fileName = `Customers${statusPart}_${datePart}.xls`;
 
-      XLSX.writeFile(wb, fileName);
-      toast.success(`✅ Exported ${allRows.length} customers to ${fileName}`);
+      exportToExcel(exportData, fileName);
+      toast.success(`✅ Exported ${allRows.length} customers`);
 
     } catch (err) {
       console.error(err);
@@ -181,7 +199,6 @@ const Customers = () => {
     }
   };
 
-  /* ── Active filter label for export button tooltip ── */
   const filterLabel = statusFilter || (search ? `"${search}"` : "All");
 
   return (
@@ -201,6 +218,7 @@ const Customers = () => {
           <button
             onClick={handleExport}
             disabled={exporting}
+            title={`Export ${filterLabel} customers to Excel`}
             style={{
               display: "flex", alignItems: "center", gap: 8,
               padding: "10px 20px", borderRadius: 12, border: "none",
@@ -208,17 +226,16 @@ const Customers = () => {
                 ? "rgba(16,185,129,0.15)"
                 : "linear-gradient(135deg,#10b981,#059669)",
               color: exporting ? "#10b981" : "#fff",
-              fontWeight: 700, fontSize: 13, cursor: exporting ? "not-allowed" : "pointer",
+              fontWeight: 700, fontSize: 13,
+              cursor: exporting ? "not-allowed" : "pointer",
               boxShadow: exporting ? "none" : "0 6px 20px rgba(16,185,129,0.35)",
               transition: "all 0.25s",
               opacity: exporting ? 0.7 : 1,
               whiteSpace: "nowrap",
             }}
-            title={`Export ${filterLabel} customers to Excel`}
           >
             <span style={{ fontSize: 16 }}>📊</span>
-            {exporting ? "Exporting..." : `Export to Excel`}
-            {/* show active filter chip inside button */}
+            {exporting ? "Exporting..." : "Export to Excel"}
             {(statusFilter || search) && !exporting && (
               <span style={{
                 background: "rgba(255,255,255,0.25)",
@@ -230,7 +247,6 @@ const Customers = () => {
             )}
           </button>
 
-          {/* Add Customer */}
           {role === "ADMIN" && (
             <button
               onClick={() => navigate("/app/add-customers")}
@@ -281,7 +297,7 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* ── Active filter indicator ── */}
+      {/* ── Active filter chips ── */}
       {(statusFilter || search) && (
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
@@ -294,18 +310,14 @@ const Customers = () => {
               display: "flex", alignItems: "center", gap: 6,
               background: "rgba(99,102,241,0.15)", color: "#a5b4fc",
               border: "1px solid rgba(99,102,241,0.3)",
-              borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600
+              borderRadius: 20, padding: "3px 12px",
+              fontSize: 12, fontWeight: 600
             }}>
               Status: {statusFilter}
-              <button
-                onClick={() => setStatusFilter("")}
-                style={{
-                  background: "none", border: "none", color: "#a5b4fc",
-                  cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1
-                }}
-              >
-                ✕
-              </button>
+              <button onClick={() => setStatusFilter("")} style={{
+                background: "none", border: "none", color: "#a5b4fc",
+                cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1
+              }}>✕</button>
             </span>
           )}
 
@@ -314,18 +326,14 @@ const Customers = () => {
               display: "flex", alignItems: "center", gap: 6,
               background: "rgba(245,158,11,0.12)", color: "#f59e0b",
               border: "1px solid rgba(245,158,11,0.3)",
-              borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600
+              borderRadius: 20, padding: "3px 12px",
+              fontSize: 12, fontWeight: 600
             }}>
               Search: "{search}"
-              <button
-                onClick={() => setSearch("")}
-                style={{
-                  background: "none", border: "none", color: "#f59e0b",
-                  cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1
-                }}
-              >
-                ✕
-              </button>
+              <button onClick={() => setSearch("")} style={{
+                background: "none", border: "none", color: "#f59e0b",
+                cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1
+              }}>✕</button>
             </span>
           )}
 
@@ -361,7 +369,6 @@ const Customers = () => {
 
               {filtered.map(c => (
                 <tr key={c.id}>
-
                   <td
                     className="fw-semibold"
                     style={{ cursor: "pointer", maxWidth: 220, wordBreak: "break-word", whiteSpace: "normal" }}
@@ -369,22 +376,17 @@ const Customers = () => {
                   >
                     {c.customerName}
                   </td>
-
                   <td>{c.contactName || "-"}</td>
-
                   <td>{c.contactNo || "-"}</td>
-
                   <td>
                     {c.status
                       ? <span className={`ds-badge ${c.status.replace(/\s+/g, "-")}`}>{c.status}</span>
                       : <span style={{ color: "#475569", fontSize: 13 }}>New</span>
                     }
                   </td>
-
                   <td style={{ color: "#94a3b8", fontSize: 13 }}>
                     {formatDate(c.lastCallDate)}
                   </td>
-
                   <td>
                     <div className="action-group" style={{ justifyContent: "center", gap: 8 }}>
                       <button
@@ -412,7 +414,6 @@ const Customers = () => {
                       )}
                     </div>
                   </td>
-
                 </tr>
               ))}
 
@@ -421,7 +422,6 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* ── Pagination ── */}
       <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
         <button
           className="elite-add-btn"

@@ -184,7 +184,7 @@ console.log("Missed data:", missed);
       {/* ── Notification Panel ── */}
      {open &&(
   <div ref={panelRef}style={{
- position: relative,
+ position: "absolute",
   top: 70,             
     left: 0,
   right: 0,

@@ -68,13 +68,17 @@ console.log("Missed data:", missed);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const toggleOpen = () => {
-    if (!open && bellRef.current) {
-      const rect = bellRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 10, right: window.innerWidth - rect.right });
-    }
-    setOpen(v => !v);
-  };
+const toggleOpen = () => {
+  if (!open && bellRef.current) {
+    const rect = bellRef.current.getBoundingClientRect();
+
+    setPanelPos({
+      top: rect.bottom + 10,
+      right: Math.max(20, window.innerWidth - rect.right)
+    });
+  }
+  setOpen(v => !v);
+};
 
   /* Unread = not in read list */
   const unreadIds  = notifications.filter(n => !read.includes(n.id)).map(n => n.id);
@@ -193,8 +197,8 @@ console.log("Missed data:", missed);
           ref={panelRef}
           style={{
             position: "fixed",
-            top:   panelPos.top,
-            right: panelPos.right,
+            top:   60,
+            right: 20,
             zIndex: 99999,
             width: 380,
             maxHeight: "80vh",

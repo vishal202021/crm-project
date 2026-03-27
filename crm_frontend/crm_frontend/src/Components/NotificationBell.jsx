@@ -37,6 +37,7 @@ const NotificationBell = () => {
 console.log("All data:", all);
 console.log("Missed data:", missed);
       setNotifications(missed);
+      setOpen(true);
     } catch {
       setNotifications([]);
     } finally {
@@ -67,11 +68,7 @@ console.log("Missed data:", missed);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-useEffect(() => {
-  if (notifications.length > 0) {
-    setOpen(true);
-  }
-}, [notifications]);
+
 
   /* Unread = not in read list */
   const unreadIds  = notifications.filter(n => !read.includes(n.id)).map(n => n.id);
@@ -185,14 +182,14 @@ useEffect(() => {
       </button>
 
       {/* ── Notification Panel ── */}
-     {open && createPortal(
+     {open (
   <div ref={panelRef}style={{
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  zIndex: 9999999,
+  position: "absolute",
+  top: 70,             
+    left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 10,
   background: "rgba(13,17,28,0.98)",
   display: "flex",
   flexDirection: "column",
@@ -422,9 +419,7 @@ useEffect(() => {
               </button>
             </div>
           )}
-        </div>,
-        document.body
-      )}
+        </div>      )}
 
       <style>{`
         @keyframes bellPulse {

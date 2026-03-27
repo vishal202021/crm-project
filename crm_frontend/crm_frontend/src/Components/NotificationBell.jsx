@@ -51,13 +51,11 @@ console.log("Missed data:", missed);
     return () => window.removeEventListener(CRM_EVENTS.DATA_UPDATED, reload);
   }, [load]);
 
-  /* Auto-refresh every 2 minutes */
   useEffect(() => {
     const interval = setInterval(load, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, [load]);
 
-  /* Close on outside click */
   useEffect(() => {
     const handler = (e) => {
       if (
@@ -69,17 +67,11 @@ console.log("Missed data:", missed);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-const toggleOpen = () => {
-  if (!open && bellRef.current) {
-    const rect = bellRef.current.getBoundingClientRect();
-
-    setPanelPos({
-      top: rect.bottom + 10,
-      right: Math.max(20, window.innerWidth - rect.right)
-    });
+useEffect(() => {
+  if (notifications.length > 0) {
+    setOpen(true);
   }
-  setOpen(v => !v);
-};
+}, [notifications]);
 
   /* Unread = not in read list */
   const unreadIds  = notifications.filter(n => !read.includes(n.id)).map(n => n.id);
@@ -135,7 +127,7 @@ const toggleOpen = () => {
       {/* ── Bell Button ── */}
       <button
         ref={bellRef}
-        onClick={toggleOpen}
+
         title="Missed call notifications"
         style={{
           position: "relative",

@@ -195,21 +195,22 @@ const toggleOpen = () => {
       {open && (
         <div
           ref={panelRef}
-          style={{
-            position: "fixed",
-            top:   60,
-            right: 20,
-            zIndex: 99999,
-            width: 380,
-            maxHeight: "80vh",
-            background: "rgba(13,17,28,0.98)",
-            border: "1px solid rgba(148,163,184,0.15)",
-            borderRadius: 18,
-            boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
-            backdropFilter: "blur(20px)",
-            display: "flex", flexDirection: "column",
-            overflow: "hidden",
-          }}
+       style={{
+  position: "fixed",
+  top: 70,
+  right: 20,
+  zIndex: 9999999,
+  width: 380,
+  maxHeight: "80vh",
+  background: "rgba(13,17,28,0.98)",
+  border: "1px solid rgba(148,163,184,0.15)",
+  borderRadius: 18,
+  boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
+  backdropFilter: "blur(20px)",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+}}
         >
           {/* accent line */}
           <div style={{

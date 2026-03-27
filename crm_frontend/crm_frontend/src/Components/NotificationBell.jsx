@@ -28,12 +28,13 @@ const NotificationBell = () => {
       const res  = await api.get("/interactions");
       const all  = Array.isArray(res.data) ? res.data : res.data?.content || [];
 
-      /* Filter missed statuses, sort newest first, keep last 50 */
       const missed = all
         .filter(i => MISSED_STATUSES.includes(i.status))
         .sort((a, b) => new Date(b.interactionDate) - new Date(a.interactionDate))
         .slice(0, 50);
-
+  console.log("API response:", res.data);
+console.log("All data:", all);
+console.log("Missed data:", missed);
       setNotifications(missed);
     } catch {
       setNotifications([]);
@@ -433,7 +434,6 @@ const NotificationBell = () => {
         </div>
       )}
 
-      {/* Pulse keyframe */}
       <style>{`
         @keyframes bellPulse {
           0%   { opacity: 1;   transform: scale(1);    }

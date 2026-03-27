@@ -99,6 +99,8 @@ const Layout = () => {
             )}
           </NavLink>
 
+          <NavLink to="notification" className={linkClass}>Notifications</NavLink>
+
           {role === "ADMIN" && (
             <>
               <hr />

@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AnimatePresence } from "framer-motion";
-
 import Layout from "./Layout";
 import Dashboard from "./Dashboard";
 import Customers from "./Customers";
@@ -17,7 +16,6 @@ import Reports from "./Reports";
 import UserRequests from "./UserRequests";
 import TodaysFollowups from "./TodaysFollowups";
 import MasterAdmin from "./MasterAdmin";
-
 import Login from "./Login";
 import Register from "./Register";
 import Home from "./Home";
@@ -28,6 +26,7 @@ import { getToken } from "./auth";
 
 import CustomerCallPage from "./CustomerCallPage";
 
+import NotificationBell from "./NotificationBell";
 function AppRoutes() {
 
   const location = useLocation();
@@ -174,6 +173,15 @@ function AppRoutes() {
     </RoleProtectedRoute>
   }
 />
+
+         <Route
+            path="notification"
+            element={
+              <RoleProtectedRoute roles={["ADMIN", "USER"]}>
+                <NotificationBell />
+              </RoleProtectedRoute>
+            }
+          />
 
         </Route>
 

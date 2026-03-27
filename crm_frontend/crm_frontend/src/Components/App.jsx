@@ -26,7 +26,7 @@ import { getToken } from "./auth";
 
 import CustomerCallPage from "./CustomerCallPage";
 
-import NotificationBell from "./NotificationBell";
+import NotificationPage from "./NotificationPage";
 function AppRoutes() {
 
   const location = useLocation();
@@ -174,14 +174,14 @@ function AppRoutes() {
   }
 />
 
-         <Route
-            path="notification"
-            element={
-              <RoleProtectedRoute roles={["ADMIN", "USER"]}>
-                <NotificationBell />
-              </RoleProtectedRoute>
-            }
-          />
+       <Route
+  path="notification"
+  element={
+    <RoleProtectedRoute roles={["ADMIN", "USER"]}>
+      <NotificationPage />
+    </RoleProtectedRoute>
+  }
+/>
 
         </Route>
 

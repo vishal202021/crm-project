@@ -194,21 +194,16 @@ const toggleOpen = () => {
 
       {/* ── Notification Panel ── */}
      {open && createPortal(
-  <div ref={panelRef} style={{
+  <div ref={panelRef}style={{
   position: "fixed",
-  top: 70,
-  right: 20,
+  top: 0,
+  left: 0,
+  width: "100vw",
+  height: "100vh",
   zIndex: 9999999,
-  width: 380,
-  maxHeight: "80vh",
   background: "rgba(13,17,28,0.98)",
-  border: "1px solid rgba(148,163,184,0.15)",
-  borderRadius: 18,
-  boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
-  backdropFilter: "blur(20px)",
   display: "flex",
   flexDirection: "column",
-  overflow: "hidden",
 }}
         >
           {/* accent line */}

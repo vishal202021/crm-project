@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "./api";
 import { CRM_EVENTS } from "./events";
+import { createPortal } from "react-dom";
 
 const MISSED_STATUSES = ["Not Answered", "Busy", "Switched Off"];
 
@@ -192,10 +193,8 @@ const toggleOpen = () => {
       </button>
 
       {/* ── Notification Panel ── */}
-      {open && (
-        <div
-          ref={panelRef}
-       style={{
+     {open && createPortal(
+  <div ref={panelRef} style={{
   position: "fixed",
   top: 70,
   right: 20,
@@ -436,7 +435,8 @@ const toggleOpen = () => {
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`

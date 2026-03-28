@@ -3,31 +3,28 @@ import { useNavigate } from "react-router-dom";
 import api from "./api";
 import CallModal from "./CallModal";
 import { CRM_EVENTS } from "./events";
-
-const MISSED_STATUSES = ["Not Answered", "Busy", "Switched Off"];
+import { getMissedCalls, MISSED_STATUSES } from "./Missedcallshelper";
 
 const NotificationPage = () => {
 
   const navigate = useNavigate();
-  const [list,       setList]       = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [selected,   setSelected]   = useState(null);
-  const [filter,     setFilter]     = useState("All");   
-  const [search,     setSearch]     = useState("");
-  const [read,       setRead]       = useState(() => {
+  const [list,     setList]     = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [filter,   setFilter]   = useState("All");
+  const [search,   setSearch]   = useState("");
+  const [read,     setRead]     = useState(() => {
     try { return JSON.parse(localStorage.getItem("crm_read_notifs") || "[]"); }
     catch { return []; }
   });
 
+  /* ── Only customers whose LATEST interaction is still missed ── */
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res  = await api.get("/interactions");
-      const all  = Array.isArray(res.data) ? res.data : res.data?.content || [];
-      const missed = all
-        .filter(i => MISSED_STATUSES.includes(i.status))
-        .sort((a, b) => new Date(b.interactionDate) - new Date(a.interactionDate));
-      setList(missed);
+      const res = await api.get("/interactions");
+      const all = Array.isArray(res.data) ? res.data : res.data?.content || [];
+      setList(getMissedCalls(all));
     } catch {
       setList([]);
     } finally {
@@ -40,6 +37,9 @@ const NotificationPage = () => {
     window.addEventListener(CRM_EVENTS.DATA_UPDATED, load);
     return () => window.removeEventListener(CRM_EVENTS.DATA_UPDATED, load);
   }, [load]);
+
+  /* After call is saved → reload → customer auto-removes if status changed */
+  const handleSaved = () => load();
 
   const markAllRead = () => {
     const merged = [...new Set([...read, ...list.map(n => n.id)])];
@@ -68,7 +68,6 @@ const NotificationPage = () => {
     return "📞";
   };
 
-  /* filtered list */
   const displayed = list.filter(n => {
     const matchFilter = filter === "All" || n.status === filter;
     const name = n.customer?.customerName || n.customerName || "";
@@ -79,7 +78,7 @@ const NotificationPage = () => {
   const unreadCount = list.filter(n => !read.includes(n.id)).length;
 
   const counts = {
-    All:          list.length,
+    "All":          list.length,
     "Not Answered": list.filter(n => n.status === "Not Answered").length,
     "Busy":         list.filter(n => n.status === "Busy").length,
     "Switched Off": list.filter(n => n.status === "Switched Off").length,
@@ -93,11 +92,10 @@ const NotificationPage = () => {
         style={{ gap: 12 }}>
         <div>
           <h3 style={{ marginBottom: 4 }}>📵 Missed Calls</h3>
-          <p style={{ margin: 0, fontSize: 13 }}>
-            All unanswered, busy & switched-off call attempts
+          <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+            Customers whose <b>latest</b> call is still unanswered — auto-removes once called back
           </p>
         </div>
-
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {unreadCount > 0 && (
             <span style={{
@@ -110,46 +108,34 @@ const NotificationPage = () => {
             </span>
           )}
           {unreadCount > 0 && (
-            <button
-              onClick={markAllRead}
-              style={{
-                background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)",
-                color: "#a5b4fc", borderRadius: 10, padding: "8px 16px",
-                fontSize: 12, fontWeight: 600, cursor: "pointer",
-              }}
-            >
-              ✓ Mark all read
-            </button>
-          )}
-          <button
-            onClick={load}
-            style={{
-              background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)",
-              color: "#10b981", borderRadius: 10, padding: "8px 14px",
+            <button onClick={markAllRead} style={{
+              background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)",
+              color: "#a5b4fc", borderRadius: 10, padding: "8px 16px",
               fontSize: 12, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            🔄 Refresh
-          </button>
+            }}>✓ Mark all read</button>
+          )}
+          <button onClick={load} style={{
+            background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)",
+            color: "#10b981", borderRadius: 10, padding: "8px 14px",
+            fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>🔄 Refresh</button>
         </div>
       </div>
 
-      {/* ── Stats strip ── */}
+      {/* ── Stat cards / filter tabs ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         {[
-          { key: "All",           label: "Total Missed",   icon: "📞", color: "#6366f1" },
-          { key: "Not Answered",  label: "Not Answered",   icon: "📵", color: "#f59e0b" },
-          { key: "Busy",          label: "Busy",           icon: "🔴", color: "#ef4444" },
-          { key: "Switched Off",  label: "Switched Off",   icon: "🔕", color: "#94a3b8" },
+          { key: "All",           label: "Total Missed",  icon: "📞", hex: "#6366f1" },
+          { key: "Not Answered",  label: "Not Answered",  icon: "📵", hex: "#f59e0b" },
+          { key: "Busy",          label: "Busy",          icon: "🔴", hex: "#ef4444" },
+          { key: "Switched Off",  label: "Switched Off",  icon: "🔕", hex: "#94a3b8" },
         ].map(tab => (
           <div
             key={tab.key}
             onClick={() => setFilter(tab.key)}
             style={{
-              background: filter === tab.key
-                ? `rgba(${tab.color === "#6366f1" ? "99,102,241" : tab.color === "#f59e0b" ? "245,158,11" : tab.color === "#ef4444" ? "239,68,68" : "148,163,184"},0.2)`
-                : "rgba(15,20,30,0.5)",
-              border: `1px solid ${filter === tab.key ? tab.color + "55" : "rgba(148,163,184,0.1)"}`,
+              background: filter === tab.key ? `${tab.hex}22` : "rgba(15,20,30,0.5)",
+              border: `1px solid ${filter === tab.key ? tab.hex + "55" : "rgba(148,163,184,0.1)"}`,
               borderRadius: 14, padding: "16px 20px",
               cursor: "pointer", transition: "all 0.2s",
               display: "flex", alignItems: "center", gap: 12,
@@ -157,15 +143,28 @@ const NotificationPage = () => {
           >
             <span style={{ fontSize: 24 }}>{tab.icon}</span>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: tab.color }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: tab.hex }}>
                 {counts[tab.key]}
               </div>
-              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
-                {tab.label}
-              </div>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{tab.label}</div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Info banner ── */}
+      <div style={{
+        background: "rgba(16,185,129,0.07)",
+        border: "1px solid rgba(16,185,129,0.2)",
+        borderRadius: 10, padding: "10px 16px",
+        fontSize: 12, color: "#10b981", marginBottom: 14,
+        display: "flex", alignItems: "center", gap: 8,
+      }}>
+        <span>💡</span>
+        <span>
+          Only showing customers whose <b>most recent</b> call is missed.
+          Log a call with any other status → customer automatically disappears from this list.
+        </span>
       </div>
 
       {/* ── Search ── */}
@@ -182,7 +181,6 @@ const NotificationPage = () => {
 
       {/* ── Table ── */}
       <div className="ds-card" style={{ padding: 0, overflow: "hidden" }}>
-
         {loading ? (
           <div style={{ textAlign: "center", padding: "52px 0", color: "#475569" }}>
             Loading missed calls...
@@ -208,7 +206,10 @@ const NotificationPage = () => {
                   <tr>
                     <td colSpan="8" style={{ textAlign: "center", padding: "52px 16px", color: "#334155" }}>
                       <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
-                      No missed calls found
+                      {list.length === 0
+                        ? "No missed calls — all customers reached!"
+                        : "No results for current filter"
+                      }
                     </td>
                   </tr>
                 )}
@@ -225,19 +226,15 @@ const NotificationPage = () => {
                       style={{ background: isUnread ? "rgba(245,158,11,0.03)" : "transparent" }}
                       onClick={() => markOneRead(n.id)}
                     >
-                      {/* Unread indicator */}
                       <td style={{ padding: "0 4px 0 12px" }}>
                         {isUnread && (
                           <div style={{
                             width: 7, height: 7, borderRadius: "50%",
-                            background: "#f59e0b",
-                            boxShadow: "0 0 6px #f59e0b",
-                            margin: "auto",
+                            background: "#f59e0b", boxShadow: "0 0 6px #f59e0b", margin: "auto",
                           }} />
                         )}
                       </td>
 
-                      {/* Customer name */}
                       <td
                         className="fw-semibold"
                         style={{
@@ -246,32 +243,26 @@ const NotificationPage = () => {
                           fontWeight: isUnread ? 700 : 500,
                           wordBreak: "break-word", whiteSpace: "normal", maxWidth: 200,
                         }}
-                        onClick={() => custId && navigate(`/app/customer/${custId}`)}
+                        onClick={(e) => { e.stopPropagation(); if (custId) navigate(`/app/customer/${custId}`); }}
                       >
                         {name}
                       </td>
 
-                      {/* Status badge */}
                       <td>
                         <span style={{
                           display: "inline-flex", alignItems: "center", gap: 5,
                           fontSize: 11, fontWeight: 700,
                           background: sc.bg, color: sc.color,
                           border: `1px solid ${sc.border}`,
-                          borderRadius: 20, padding: "4px 12px",
-                          whiteSpace: "nowrap",
+                          borderRadius: 20, padding: "4px 12px", whiteSpace: "nowrap",
                         }}>
                           {statusIcon(n.status)} {n.status}
                         </span>
                       </td>
 
-                      <td style={{ color: "#94a3b8", fontSize: 13 }}>
-                        {n.interactionDate || "—"}
-                      </td>
+                      <td style={{ color: "#94a3b8", fontSize: 13 }}>{n.interactionDate || "—"}</td>
 
-                      <td style={{ color: "#a5b4fc", fontSize: 13 }}>
-                        {n.callBy || "—"}
-                      </td>
+                      <td style={{ color: "#a5b4fc", fontSize: 13 }}>{n.callBy || "—"}</td>
 
                       <td style={{
                         color: "#cbd5e1", fontSize: 12,
@@ -287,25 +278,19 @@ const NotificationPage = () => {
                         }
                       </td>
 
-                      {/* Actions */}
                       <td>
                         <div className="action-group" style={{ justifyContent: "center", gap: 8 }}>
-                          {/* Call back button */}
                           <button
                             className="icon-btn call"
-                            title="Call back"
+                            title="Call back — will remove from list if status changes"
                             onClick={(e) => {
                               e.stopPropagation();
                               markOneRead(n.id);
-                              setSelected({
-                                id:           custId,
-                                customerName: name,
-                              });
+                              setSelected({ id: custId, customerName: name });
                             }}
                           >
                             <i className="bi bi-telephone" />
                           </button>
-                          {/* View customer */}
                           <button
                             className="icon-btn primary"
                             title="View customer"
@@ -332,7 +317,7 @@ const NotificationPage = () => {
         <CallModal
           customer={selected}
           onClose={() => setSelected(null)}
-          onSaved={load}
+          onSaved={handleSaved}
         />
       )}
 

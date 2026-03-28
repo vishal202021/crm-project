@@ -5,10 +5,11 @@ import api from "./api";
 import "../Css/index.css";
 import { motion } from "framer-motion";
 import { CRM_EVENTS } from "./events";
+import NotificationBell from "./NotificationBell";
 
 const Layout = () => {
 
-  const role = getRole();
+  const role     = getRole();
   const username = getUsername();
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,47 +18,21 @@ const Layout = () => {
 
   const loadFollowups = useCallback(() => {
     api.get("/interactions/today")
-      .then(res => {
-        setTodayFollowups(res.data?.length || 0);
-      })
-      .catch(() => {
-        setTodayFollowups(0);
-      });
+      .then(res => setTodayFollowups(res.data?.length || 0))
+      .catch(() => setTodayFollowups(0));
   }, []);
 
+  useEffect(() => { loadFollowups(); }, [loadFollowups]);
+  useEffect(() => { loadFollowups(); }, [location.pathname, loadFollowups]);
+
   useEffect(() => {
-    loadFollowups();
+    window.addEventListener(CRM_EVENTS.DATA_UPDATED, loadFollowups);
+    return () => window.removeEventListener(CRM_EVENTS.DATA_UPDATED, loadFollowups);
   }, [loadFollowups]);
 
-  useEffect(() => {
-    loadFollowups();
-  }, [location.pathname, loadFollowups]);
+  const handleLogout = () => { logout(); navigate("/"); };
 
-  useEffect(() => {
-
-    const reload = () => loadFollowups();
-
-    window.addEventListener(
-      CRM_EVENTS.DATA_UPDATED,
-      reload
-    );
-
-    return () => {
-      window.removeEventListener(
-        CRM_EVENTS.DATA_UPDATED,
-        reload
-      );
-    };
-
-  }, [loadFollowups]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  const linkClass = ({ isActive }) =>
-    "menu-link " + (isActive ? "active-link" : "");
+  const linkClass = ({ isActive }) => "menu-link " + (isActive ? "active-link" : "");
 
   return (
     <div className="app-dark">
@@ -66,12 +41,13 @@ const Layout = () => {
         <h5 className="fw-bold m-0">CRM Follow Ups</h5>
 
         <div className="d-flex gap-3 align-items-center">
+
+          {/* 🔔 Notification Bell */}
+          <NotificationBell />
+
           <span>👤 {username} ({role})</span>
 
-          <button
-            onClick={handleLogout}
-            className="btn btn-sm btn-danger"
-          >
+          <button onClick={handleLogout} className="btn btn-sm btn-danger">
             Logout
           </button>
         </div>
@@ -83,51 +59,45 @@ const Layout = () => {
 
           <h6 className="ds-menu-title">MENU</h6>
 
-          <NavLink to="" end className={linkClass}>📊 Dashboard</NavLink>
-          <NavLink to="customers" className={linkClass}>👥 Customers</NavLink>
-          <NavLink to="interactions" className={linkClass}>📞 Interactions</NavLink>
-          <NavLink to="timeline" className={linkClass}>🕒 Timeline</NavLink>
-          <NavLink to="today" className={linkClass}>🔔 Followups</NavLink>
-          <NavLink to="tasks" className={linkClass}>📝 Tasks</NavLink>
+          <NavLink to=""              end className={linkClass}>📊 Dashboard</NavLink>
+          <NavLink to="customers"         className={linkClass}>👥 Customers</NavLink>
+          <NavLink to="interactions"      className={linkClass}>🏢 Interactions</NavLink>
+          <NavLink to="timeline"          className={linkClass}>🕒 Timeline</NavLink>
+          <NavLink to="today"             className={linkClass}>🔔 Followups</NavLink>
+          <NavLink to="tasks"             className={linkClass}>📝 Tasks</NavLink>
 
-          <NavLink to="todays-followups" className={linkClass}>
+          <NavLink to="todays-followups"  className={linkClass}>
             ✅ Today's Followups
             {todayFollowups > 0 && (
-              <span className="sidebar-badges">
-                {todayFollowups}
-              </span>
+              <span className="sidebar-badges">{todayFollowups}</span>
             )}
           </NavLink>
 
-          <NavLink to="notification" className={linkClass}>Notifications</NavLink>
+          <NavLink to="notification"      className={linkClass}>📵 Missed Calls</NavLink>
 
           {role === "ADMIN" && (
             <>
               <hr />
               <h6 className="text-muted">ADMIN</h6>
-
-              <NavLink to="add-customers" className={linkClass}>➕ Add Customer</NavLink>
-              <NavLink to="reports" className={linkClass}>📊 Reports</NavLink>
-              <NavLink to="user-requests" className={linkClass}>📨 User Requests</NavLink>
-              <NavLink to="master-admin" className={linkClass}>👑 Master Admin</NavLink>
+              <NavLink to="add-customers"  className={linkClass}>➕ Add Customer</NavLink>
+              <NavLink to="reports"        className={linkClass}>📊 Reports</NavLink>
+              <NavLink to="user-requests"  className={linkClass}>📨 User Requests</NavLink>
+              <NavLink to="master-admin"   className={linkClass}>👑 Master Admin</NavLink>
             </>
           )}
         </div>
 
         <div className="flex-grow-1 p-4">
           <div className="glass p-4">
-
-          <motion.div
-  key={location.pathname}
-  layout={false}
-  initial={{ opacity: 0 }}
-  animate={{ opacity: 1 }}
-  transition={{
-    duration: 0.15,
-    ease: "easeOut"
-  }}
-><Outlet /></motion.div>
-
+            <motion.div
+              key={location.pathname}
+              layout={false}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <Outlet />
+            </motion.div>
           </div>
         </div>
 
@@ -136,4 +106,4 @@ const Layout = () => {
   );
 };
 
-export default Layout; 
+export default Layout;

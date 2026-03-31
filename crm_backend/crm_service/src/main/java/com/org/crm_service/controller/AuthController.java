@@ -191,6 +191,10 @@ public class AuthController {
     }
 
 
+    @GetMapping("/users")
+    public ResponseEntity<List<AppUser>> getAll(){
+        return ResponseEntity.ok().body(userRepo.findAll());
+    }
 
 
 

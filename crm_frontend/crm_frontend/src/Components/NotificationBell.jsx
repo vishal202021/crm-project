@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import api from "./api";
 import { CRM_EVENTS } from "./events";
-import { getMissedCalls, MISSED_STATUSES } from "./Missedcallshelper";
+import { getMissedCalls, MISSED_STATUSES, getInteractionCustomerName, getInteractionCustomerId } from "./Missedcallshelper";
 
 const NotificationBell = () => {
 
@@ -20,14 +20,21 @@ const NotificationBell = () => {
   const bellRef  = useRef(null);
   const panelRef = useRef(null);
 
-  /* ── Fetch & filter: only customers whose LATEST call is missed ── */
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/interactions");
-      const all = Array.isArray(res.data) ? res.data : res.data?.content || [];
-      setNotifications(getMissedCalls(all));
-    } catch {
+
+      // Handle paginated or plain array response
+      let all = [];
+      if (Array.isArray(res.data))          all = res.data;
+      else if (Array.isArray(res.data?.content)) all = res.data.content;
+      else if (typeof res.data === "object") all = Object.values(res.data);
+
+      const missed = getMissedCalls(all);
+      setNotifications(missed);
+    } catch (err) {
+      console.error("NotificationBell fetch error:", err);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -45,7 +52,6 @@ const NotificationBell = () => {
     return () => clearInterval(t);
   }, [load]);
 
-  /* Close on outside click */
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -81,7 +87,7 @@ const NotificationBell = () => {
     setRead(merged);
     localStorage.setItem("crm_read_notifs", JSON.stringify(merged));
     setOpen(false);
-    const id = n.customer?.id || n.customerId;
+    const id = getInteractionCustomerId(n);
     if (id) navigate(`/app/customer/${id}`);
   };
 
@@ -98,16 +104,17 @@ const NotificationBell = () => {
       ref={panelRef}
       style={{
         position: "fixed", top: pos.top, right: pos.right,
-        width: 370, maxHeight: "70vh", minHeight: 200,
+        width: 370, maxHeight: "70vh", minHeight: 100,
         zIndex: 2147483647,
         background: "#0f172a",
         border: "1px solid #1e293b",
         borderRadius: 16,
-        boxShadow: "0 24px 80px #000, 0 0 0 1px #1e293b",
+        boxShadow: "0 24px 80px #000",
         display: "flex", flexDirection: "column",
         overflow: "hidden", color: "#f1f5f9",
       }}
     >
+      {/* accent */}
       <div style={{ height: 3, background: "linear-gradient(90deg,#f59e0b,#ef4444,#f59e0b)", flexShrink: 0 }} />
 
       {/* Header */}
@@ -121,7 +128,7 @@ const NotificationBell = () => {
           <div>
             <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9" }}>Missed Calls</div>
             <div style={{ fontSize: 11, color: "#475569", marginTop: 1 }}>
-              {notifications.length} customer{notifications.length !== 1 ? "s" : ""} still unreached
+              {notifications.length} customer{notifications.length !== 1 ? "s" : ""} unreached
             </div>
           </div>
         </div>
@@ -135,15 +142,15 @@ const NotificationBell = () => {
           )}
           <button onClick={() => setOpen(false)} style={{
             background: "none", border: "none", color: "#64748b",
-            cursor: "pointer", fontSize: 20, lineHeight: 1,
+            cursor: "pointer", fontSize: 22, lineHeight: 1,
           }}>×</button>
         </div>
       </div>
 
-      {/* Status counts */}
+      {/* Status strip */}
       <div style={{
         padding: "7px 16px", borderBottom: "1px solid #1e293b",
-        display: "flex", gap: 14, flexShrink: 0, background: "#090e1a",
+        display: "flex", gap: 14, flexShrink: 0, background: "#090e1a", flexWrap: "wrap",
       }}>
         {MISSED_STATUSES.map(s => {
           const c = sc(s), cnt = notifications.filter(n => n.status === s).length;
@@ -163,20 +170,25 @@ const NotificationBell = () => {
 
       {/* List */}
       <div style={{ overflowY: "auto", flex: 1, background: "#0f172a" }}>
+
         {loading && (
-          <div style={{ padding: 40, textAlign: "center", color: "#475569", fontSize: 13 }}>Loading...</div>
+          <div style={{ padding: 40, textAlign: "center", color: "#475569", fontSize: 13 }}>
+            Loading...
+          </div>
         )}
+
         {!loading && notifications.length === 0 && (
-          <div style={{ padding: 48, textAlign: "center" }}>
+          <div style={{ padding: "40px 20px", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>🎉</div>
             <div style={{ color: "#475569", fontSize: 13, fontWeight: 600 }}>No missed calls!</div>
             <div style={{ color: "#334155", fontSize: 11, marginTop: 4 }}>All customers have been reached</div>
           </div>
         )}
+
         {!loading && notifications.map(n => {
-          const s = sc(n.status);
+          const s        = sc(n.status);
           const isUnread = !read.includes(n.id);
-          const name = n.customer?.customerName || n.customerName || "Unknown";
+          const name     = getInteractionCustomerName(n);
           return (
             <div
               key={n.id}
@@ -199,6 +211,7 @@ const NotificationBell = () => {
                   width: 6, height: 6, borderRadius: "50%", background: "#f59e0b",
                 }} />
               )}
+
               <div style={{
                 width: 34, height: 34, flexShrink: 0, borderRadius: 9,
                 background: s.bg, border: `1px solid ${s.bd}`,
@@ -206,6 +219,7 @@ const NotificationBell = () => {
               }}>
                 {icon(n.status)}
               </div>
+
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 3 }}>
                   <span style={{
@@ -220,12 +234,14 @@ const NotificationBell = () => {
                     borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap",
                   }}>{n.status}</span>
                 </div>
+
                 {n.followupDetails && (
                   <div style={{
-                    fontSize: 11, color: "#334155", marginBottom: 4,
+                    fontSize: 11, color: "#334155", marginBottom: 3,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>{n.followupDetails}</div>
                 )}
+
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 11, color: "#1e3a5f" }}>📅 {n.interactionDate}</span>
                   {n.callBy && <span style={{ fontSize: 11, color: "#1e3a5f" }}>👤 {n.callBy}</span>}
@@ -260,7 +276,6 @@ const NotificationBell = () => {
   return (
     <>
       <style>{`@keyframes bp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.2)}}`}</style>
-
       <button
         ref={bellRef}
         onClick={toggleOpen}
@@ -300,7 +315,6 @@ const NotificationBell = () => {
           </>
         )}
       </button>
-
       {panel}
     </>
   );

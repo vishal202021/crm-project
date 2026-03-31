@@ -16,6 +16,7 @@ public class CustomerSummaryDTO {
     private String contactName;
     private String contactNo;
     private String priority;
+    private String assignedToUserId;
     private String status;
     private LocalDate nextFollowupDate;
     private String city;

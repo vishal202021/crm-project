@@ -25,7 +25,7 @@ public class Customer {
 
     private String address;
     private String pinCode;
-
+    private String assignedToUserId;
 
     private String contactName;
     private String contactNo;

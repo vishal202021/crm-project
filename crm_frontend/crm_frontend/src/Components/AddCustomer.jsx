@@ -1,418 +1,284 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "./api";
+import { getRole } from "./auth";
 import { toast } from "react-toastify";
-
-const Field = ({ label, required, children }) => (
-  <div style={{ marginBottom: 16 }}>
-    <label
-      style={{
-        display: "block",
-        fontSize: 11,
-        fontWeight: 700,
-        color: "#64748b",
-        textTransform: "uppercase",
-        letterSpacing: "0.08em",
-        marginBottom: 7
-      }}
-    >
-      {label}
-      {required && (
-        <span style={{ color: "#ef4444", marginLeft: 3 }}>*</span>
-      )}
-    </label>
-    {children}
-  </div>
-);
-
-const emptyContact = {
-  name: "",
-  phone: "",
-  position: "",
-  primaryContact: false
-};
 
 const AddCustomer = () => {
 
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
+  const role     = getRole();
+  const [saving,     setSaving]     = useState(false);
+  const [users,      setUsers]      = useState([]);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinMsg,     setPinMsg]     = useState("");
+  const dateRef = useRef(null);
 
-  const today = new Date().toISOString().split("T")[0];
-
-  const [c, setC] = useState({
-    customerName: "",
-    priority: "",
-    branches: "",
-    leadGenerationDate: today,
-    address: "",
-    pinCode: "",
-    referenceBy: "",
-    state: "",
-    district: "",
-    taluka: "",
-    contacts: [{ ...emptyContact, primaryContact: true }]
+  const [form, setForm] = useState({
+    customerName: "", priority: "Medium", branches: "",
+    leadGenerationDate: "", referenceBy: "", address: "",
+    pinCode: "", state: "", district: "", taluka: "",
+    status: "", assignedToUserId: "",
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setC(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const [contacts, setContacts] = useState([
+    { name: "", phone: "", position: "", primaryContact: true }
+  ]);
+
+  /* Load users for assign dropdown */
+  useEffect(() => {
+    if (role !== "ADMIN") return;
+    api.get("/auth/users")
+      .then(res => setUsers(Array.isArray(res.data) ? res.data : res.data?.content || []))
+      .catch(() => setUsers([]));
+  }, [role]);
+
+  /* Pincode autofill */
+  useEffect(() => {
+    if (form.pinCode?.length !== 6) { setPinMsg(""); return; }
+    setPinLoading(true);
+    fetch(`https://api.postalpincode.in/pincode/${form.pinCode}`)
+      .then(r => r.json())
+      .then(data => {
+        const po = data?.[0]?.PostOffice?.[0];
+        if (po) {
+          setForm(f => ({ ...f, state: po.State || "", district: po.District || "", taluka: po.Block || "" }));
+          setPinMsg(`✅ ${po.District}, ${po.State}`);
+        } else setPinMsg("❌ Invalid pincode");
+      })
+      .catch(() => setPinMsg(""))
+      .finally(() => setPinLoading(false));
+  }, [form.pinCode]);
+
+  const setPrimary   = (idx) => setContacts(contacts.map((c, i) => ({ ...c, primaryContact: i === idx })));
+  const addContact   = () => setContacts([...contacts, { name: "", phone: "", position: "", primaryContact: false }]);
+  const removeContact = (idx) => {
+    if (contacts.length === 1) return;
+    const updated = contacts.filter((_, i) => i !== idx);
+    if (!updated.some(c => c.primaryContact)) updated[0].primaryContact = true;
+    setContacts(updated);
   };
-
-  const handleContactChange = (i, field, value) => {
-    setC(prev => {
-      const list = [...prev.contacts];
-      list[i] = { ...list[i], [field]: value };
-      return { ...prev, contacts: list };
-    });
-  };
-
-  const addContact = () => {
-    setC(prev => ({
-      ...prev,
-      contacts: [...prev.contacts, { ...emptyContact }]
-    }));
-  };
-
-  const removeContact = (i) => {
-    setC(prev => ({
-      ...prev,
-      contacts: prev.contacts.filter((_, idx) => idx !== i)
-    }));
-  };
-
-  const setPrimary = (i) => {
-    setC(prev => ({
-      ...prev,
-      contacts: prev.contacts.map((ct, idx) => ({
-        ...ct,
-        primaryContact: idx === i
-      }))
-    }));
-  };
-
-  const fetchPincode = async (pin) => {
-    if (pin.length !== 6) return;
-
-    try {
-      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-      const data = await res.json();
-
-      if (data[0].Status === "Success") {
-        const info = data[0].PostOffice[0];
-
-        setC(prev => ({
-          ...prev,
-          state: info.State,
-          district: info.District,
-          taluka: info.Block || info.Region
-        }));
-      }
-    } catch {}
-  };
+  const updateContact = (idx, field, val) =>
+    setContacts(contacts.map((c, i) => i === idx ? { ...c, [field]: val } : c));
 
   const validate = () => {
-
-    if (!c.customerName.trim()) {
-      toast.error("Customer name required");
-      return false;
-    }
-
-    if (!c.priority) {
-      toast.error("Select priority");
-      return false;
-    }
-
-    if (c.pinCode && c.pinCode.length !== 6) {
-      toast.error("Invalid pincode");
-      return false;
-    }
-
-    if (c.contacts.filter(ct => ct.primaryContact).length !== 1) {
-      toast.error("Exactly ONE primary contact required");
-      return false;
-    }
-
-    for (const ct of c.contacts) {
-      if (!ct.name.trim()) {
-        toast.error("Contact name required");
-        return false;
-      }
-
-      if (!/^\d{10}$/.test(ct.phone)) {
-        toast.error("Invalid phone number");
-        return false;
-      }
-    }
-
+    if (!form.customerName.trim()) { toast.error("Customer name required"); return false; }
+    const p = contacts.find(c => c.primaryContact);
+    if (!p?.name.trim())  { toast.error("Primary contact name required");  return false; }
+    if (!p?.phone.trim()) { toast.error("Primary contact phone required"); return false; }
     return true;
   };
 
   const save = async () => {
-
     if (!validate()) return;
-
     try {
-
       setSaving(true);
-
       await api.post("/customers", {
-        ...c,
-        customerName: c.customerName.trim(),
-        branches: Number(c.branches)
+        ...form,
+        assignedToUserId: form.assignedToUserId ? Number(form.assignedToUserId) : null,
+        contacts,
       });
-
-      toast.success(`🎉 ${c.customerName} added!`);
-
-      setTimeout(() => {
-        navigate("/app/customers");
-      }, 1200);
-
+      toast.success("✅ Customer added!");
+      setTimeout(() => navigate("/app/customers"), 1200);
     } catch (err) {
-
-      toast.error(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Error saving customer"
-      );
-
-    } finally {
-      setSaving(false);
-    }
+      toast.error(err.response?.data?.message || "Failed to save");
+    } finally { setSaving(false); }
   };
 
+  const F = ({ label, required, children }) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{
+        display: "block", fontSize: 11, fontWeight: 700, color: "#64748b",
+        textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6,
+      }}>
+        {label}{required && <span style={{ color: "#ef4444" }}> *</span>}
+      </label>
+      {children}
+    </div>
+  );
+
   return (
+    <div className="page-wrap">
 
-    <div className="page-wrap" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-
-      {/* HEADER */}
-      <div
-        className="ds-card customer-header mb-3 d-flex justify-content-between align-items-center flex-wrap"
-        style={{ gap: 12 }}
-      >
-
+      {/* Header */}
+      <div className="ds-card mb-3 d-flex justify-content-between align-items-center flex-wrap" style={{ gap: 12 }}>
         <div>
-          <h3 style={{ fontSize: 20, marginBottom: 4 }}>Add Customer</h3>
-          <p style={{ margin: 0, fontSize: 13 }}>Create a new customer profile</p>
+          <h3 style={{ marginBottom: 4 }}>➕ Add Customer</h3>
+          <p style={{ margin: 0, fontSize: 13 }}>Create a new lead and optionally assign to a user</p>
         </div>
-
-        <div style={{ display: "flex", gap: 12 }}>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="elite-btn-primary"
-          >
-            {saving ? "Saving..." : "💾 Save Customer"}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={save} disabled={saving} className="elite-save" style={{ padding: "10px 24px" }}>
+            {saving ? "Saving..." : "💾 Save"}
           </button>
-
-          <button
-            onClick={() => navigate("/app/customers")}
-            className="elite-btn-outline"
-          >
+          <button onClick={() => navigate("/app/customers")} className="elite-cancel" style={{ padding: "10px 24px" }}>
             Cancel
           </button>
         </div>
-
       </div>
 
-      {/* MAIN GRID */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: 20
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
 
-        {/* BASIC INFO */}
-        <div className="ds-card" style={{ padding: 26 }}>
+        {/* Col 1 – Basic */}
+        <div className="ds-card">
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#6366f1", marginBottom: 16, textTransform: "uppercase" }}>
+            📋 Basic Info
+          </div>
 
-          <Field label="Customer Name" required>
-            <input
-              name="customerName"
-              className="elite-input"
-              value={c.customerName}
-              onChange={handleChange}
-            />
-          </Field>
+          <F label="Customer Name" required>
+            <input className="elite-input w-100" value={form.customerName}
+              onChange={e => setForm({ ...form, customerName: e.target.value })} />
+          </F>
 
-          <Field label="Priority" required>
-            <select
-              name="priority"
-              className="elite-input"
-              value={c.priority}
-              onChange={handleChange}
-            >
-              <option value="">Select priority</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
+          <F label="Priority">
+            <select className="elite-input w-100" value={form.priority}
+              onChange={e => setForm({ ...form, priority: e.target.value })}>
+              <option>High</option><option>Medium</option><option>Low</option>
             </select>
-          </Field>
+          </F>
 
-          <Field label="Branches">
-            <input
-              type="number"
-              name="branches"
-              className="elite-input"
-              value={c.branches}
-              onChange={handleChange}
-            />
-          </Field>
+          <F label="Status">
+            <select className="elite-input w-100" value={form.status}
+              onChange={e => setForm({ ...form, status: e.target.value })}>
+              <option value="">Select Status</option>
+              <option>New</option><option>Interested</option><option>Follow-up</option>
+              <option>Connected</option><option>Converted</option><option>Not Interested</option>
+            </select>
+          </F>
 
-          <Field label="Address">
-            <textarea
-              name="address"
-              className="elite-input"
-              value={c.address}
-              onChange={handleChange}
-            />
-          </Field>
+          <F label="Branches">
+            <input className="elite-input w-100" value={form.branches}
+              onChange={e => setForm({ ...form, branches: e.target.value })} />
+          </F>
 
-        </div>
+          <F label="Lead Date">
+            <input type="date" ref={dateRef} className="elite-input w-100"
+              value={form.leadGenerationDate}
+              onChange={e => setForm({ ...form, leadGenerationDate: e.target.value })}
+              onClick={() => { try { dateRef.current?.showPicker(); } catch {} }} />
+          </F>
 
-        {/* LOCATION */}
-        <div className="ds-card" style={{ padding: 26 }}>
+          <F label="Reference By">
+            <input className="elite-input w-100" value={form.referenceBy}
+              onChange={e => setForm({ ...form, referenceBy: e.target.value })} />
+          </F>
 
-          <Field label="Pin Code">
-            <input
-              name="pinCode"
-              className="elite-input"
-              value={c.pinCode}
-              onChange={(e) => {
-                handleChange(e);
-                fetchPincode(e.target.value);
-              }}
-            />
-          </Field>
+          <F label="Address">
+            <textarea rows="3" className="elite-input w-100" value={form.address}
+              onChange={e => setForm({ ...form, address: e.target.value })} />
+          </F>
 
-          <Field label="State">
-            <input
-              name="state"
-              className="elite-input"
-              value={c.state}
-              onChange={handleChange}
-            />
-          </Field>
-
-          <Field label="District">
-            <input
-              name="district"
-              className="elite-input"
-              value={c.district}
-              onChange={handleChange}
-            />
-          </Field>
-
-          <Field label="Taluka">
-            <input
-              name="taluka"
-              className="elite-input"
-              value={c.taluka}
-              onChange={handleChange}
-            />
-          </Field>
-
-        </div>
-
-        <div className="ds-card" style={{ padding: 26 }}>
-
-          <Field label="Contacts" required>
-            <div />
-          </Field>
-
-          {c.contacts.map((ct, i) => (
-            <div
-              key={i}
-              style={{
-                marginBottom: 12,
-                padding: "12px",
-                borderRadius: 8,
-                border: ct.primaryContact
-                  ? "1.5px solid #6366f1"
-                  : "1.5px solid rgba(255,255,255,0.08)",
-              }}
-            >
-
-              <input
-                placeholder="Contact Name"
-                className="elite-input"
-                value={ct.name}
-                onChange={(e) =>
-                  handleContactChange(i, "name", e.target.value)
-                }
-                style={{ marginBottom: 8, width: "100%", boxSizing: "border-box" }}
-              />
-
-              <input
-                placeholder="Phone (10 digits)"
-                className="elite-input"
-                value={ct.phone}
-                maxLength={10}
-                onChange={(e) =>
-                  handleContactChange(i, "phone", e.target.value)
-                }
-                style={{ marginBottom: 8, width: "100%", boxSizing: "border-box" }}
-              />
-
-              <div style={{ display: "flex", gap: 8 }}>
-
-                <button
-                  type="button"
-                  onClick={() => setPrimary(i)}
-                  className={ct.primaryContact ? "elite-btn-primary" : "elite-btn-outline"}
-                  style={{
-                    flex: 1,
-                    fontSize: 12,
-                    padding: "5px 10px",
-                    cursor: "pointer"
-                  }}
-                >
-                  {ct.primaryContact ? "✓ Primary" : "Set Primary"}
-                </button>
-
-                {c.contacts.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeContact(i)}
-                    className="elite-btn-outline"
-                    style={{
-                      fontSize: 12,
-                      padding: "5px 10px",
-                      cursor: "pointer",
-                      color: "#f87171",
-                      borderColor: "#f87171"
-                    }}
-                  >
-                    Remove
-                  </button>
-                )}
-
+          {/* ── Assign To (ADMIN only) ── */}
+          {role === "ADMIN" && (
+            <F label="🎯 Assign To User">
+              <select className="elite-input w-100" value={form.assignedToUserId}
+                onChange={e => setForm({ ...form, assignedToUserId: e.target.value })}>
+                <option value="">— Visible to all users —</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.username || u.email}
+                    {u.role ? ` (${u.role})` : ""}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: 11, color: "#475569", marginTop: 5, lineHeight: 1.5 }}>
+                💡 If assigned, only that user + Admins can see this lead
               </div>
+            </F>
+          )}
+        </div>
 
+        {/* Col 2 – Location */}
+        <div className="ds-card">
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#10b981", marginBottom: 16, textTransform: "uppercase" }}>
+            📍 Location
+          </div>
+
+          <F label="Pin Code">
+            <input className="elite-input w-100" maxLength={6} value={form.pinCode}
+              onChange={e => setForm({ ...form, pinCode: e.target.value.replace(/\D/g, "") })} />
+            {pinLoading && <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>Looking up...</div>}
+            {pinMsg && (
+              <div style={{ fontSize: 11, marginTop: 4, color: pinMsg.startsWith("✅") ? "#10b981" : "#ef4444" }}>
+                {pinMsg}
+              </div>
+            )}
+          </F>
+          <F label="State">
+            <input className="elite-input w-100" value={form.state}
+              onChange={e => setForm({ ...form, state: e.target.value })} />
+          </F>
+          <F label="District">
+            <input className="elite-input w-100" value={form.district}
+              onChange={e => setForm({ ...form, district: e.target.value })} />
+          </F>
+          <F label="Taluka">
+            <input className="elite-input w-100" value={form.taluka}
+              onChange={e => setForm({ ...form, taluka: e.target.value })} />
+          </F>
+        </div>
+
+        {/* Col 3 – Contacts */}
+        <div className="ds-card">
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: "#f59e0b",
+            marginBottom: 16, textTransform: "uppercase",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <span>👤 Contacts</span>
+            <button onClick={addContact} style={{
+              background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)",
+              color: "#a5b4fc", borderRadius: 8, padding: "4px 10px",
+              fontSize: 11, cursor: "pointer",
+            }}>+ Add</button>
+          </div>
+
+          {contacts.map((c, idx) => (
+            <div key={idx} style={{
+              background: "rgba(15,20,30,0.5)",
+              border: `1px solid ${c.primaryContact ? "rgba(16,185,129,0.4)" : "rgba(148,163,184,0.1)"}`,
+              borderRadius: 12, padding: 14, marginBottom: 12,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c.primaryContact ? "#10b981" : "#64748b" }}>
+                  {c.primaryContact ? "⭐ Primary" : `Contact ${idx + 1}`}
+                </span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {!c.primaryContact && (
+                    <button onClick={() => setPrimary(idx)} style={{
+                      background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)",
+                      color: "#10b981", borderRadius: 6, padding: "2px 8px",
+                      fontSize: 10, cursor: "pointer",
+                    }}>Set Primary</button>
+                  )}
+                  {contacts.length > 1 && (
+                    <button onClick={() => removeContact(idx)} style={{
+                      background: "rgba(239,68,68,0.1)", border: "none",
+                      color: "#ef4444", borderRadius: 6, padding: "2px 6px",
+                      fontSize: 12, cursor: "pointer",
+                    }}>✕</button>
+                  )}
+                </div>
+              </div>
+              <input className="elite-input w-100" placeholder="Name *" value={c.name}
+                onChange={e => updateContact(idx, "name", e.target.value)} style={{ marginBottom: 8 }} />
+              <input className="elite-input w-100" placeholder="Phone *" value={c.phone}
+                onChange={e => updateContact(idx, "phone", e.target.value)} style={{ marginBottom: 8 }} />
+              <input className="elite-input w-100" placeholder="Position" value={c.position}
+                onChange={e => updateContact(idx, "position", e.target.value)} />
             </div>
           ))}
-
-          <button
-            type="button"
-            onClick={addContact}
-            className="elite-btn-outline"
-            style={{
-              width: "100%",
-              marginTop: 4,
-              cursor: "pointer",
-              borderStyle: "dashed"
-            }}
-          >
-            + Add Contact
-          </button>
-
         </div>
 
       </div>
 
+      <div className="ds-card mt-3 d-flex justify-content-end" style={{ gap: 10 }}>
+        <button onClick={save} disabled={saving} className="elite-save" style={{ padding: "12px 32px" }}>
+          {saving ? "Saving..." : "💾 Save Customer"}
+        </button>
+        <button onClick={() => navigate("/app/customers")} className="elite-cancel" style={{ padding: "12px 32px" }}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 };

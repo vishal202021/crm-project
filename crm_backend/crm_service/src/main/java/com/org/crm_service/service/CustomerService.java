@@ -128,6 +128,7 @@ public class CustomerService {
                     c.getContactName(),
                     c.getContactNo(),
                     c.getPriority(),
+                    c.getAssignedToUserId(),
                     latest != null ? latest.getStatus() : null,
                     latest != null ? latest.getNextFollowupDate() : null,
                     c.getTaluka(),

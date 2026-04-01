@@ -4,6 +4,19 @@ import api from "./api";
 import { getRole } from "./auth";
 import { toast } from "react-toastify";
 
+/* ── Must be outside component — prevents remount on every keystroke ── */
+const F = ({ label, required, children }) => (
+  <div style={{ marginBottom: 14 }}>
+    <label style={{
+      display: "block", fontSize: 11, fontWeight: 700, color: "#64748b",
+      textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6,
+    }}>
+      {label}{required && <span style={{ color: "#ef4444" }}> *</span>}
+    </label>
+    {children}
+  </div>
+);
+
 const AddCustomer = () => {
 
   const navigate = useNavigate();
@@ -84,18 +97,6 @@ const AddCustomer = () => {
       toast.error(err.response?.data?.message || "Failed to save");
     } finally { setSaving(false); }
   };
-
-  const F = ({ label, required, children }) => (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{
-        display: "block", fontSize: 11, fontWeight: 700, color: "#64748b",
-        textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6,
-      }}>
-        {label}{required && <span style={{ color: "#ef4444" }}> *</span>}
-      </label>
-      {children}
-    </div>
-  );
 
   return (
     <div className="page-wrap">
